@@ -1,0 +1,32 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Application properties
+application-local.*
+application-dev.*
+application-prod.*
+
+# Logs
+logs/
+*.log
+
+# Database
+/data/
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+*.tmp
+*.temp
