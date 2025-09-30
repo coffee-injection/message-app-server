@@ -14,7 +14,7 @@ out/
 application-local.*
 application-dev.*
 application-prod.*
-application.*
+application.yml
 
 # Logs
 logs/

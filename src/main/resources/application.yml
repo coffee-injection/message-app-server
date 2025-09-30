@@ -1,0 +1,12 @@
+spring:
+  profiles:
+    active: local  # 기본 프로파일 지정
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+
+logging:
+  level:
+    org.hibernate: DEBUG
