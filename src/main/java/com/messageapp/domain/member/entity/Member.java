@@ -27,15 +27,21 @@ public class Member extends BaseEntity {
     @Column(name = "member_name", nullable = false, length = 50)
     private String name;
 
+    private String oauthId;
+
+    private Boolean isNew;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private MemberStatus status = MemberStatus.ACTIVE;
 
     @Builder
-    public Member(String socialInfo, String email, String name) {
+    public Member(String socialInfo, String email, String name, String oauthId, Boolean isNew) {
         this.socialInfo = socialInfo;
         this.email = email;
         this.name = name;
+        this.oauthId = oauthId;
+        this.isNew = isNew;
         this.status = MemberStatus.ACTIVE;
     }
 
