@@ -1,0 +1,26 @@
+spring:
+  profiles:
+    active: local  # 기본 프로파일 지정
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+
+# JWT 설정
+jwt:
+  secret-key: your-jwt-secret-key-at-least-32-characters-long-here
+  access-token-expiration: 86400000  # 24시간 (밀리초)
+
+# OAuth 설정
+oauth:
+  kakao:
+    client-id: your-kakao-client-id-here
+    client-secret: your-kakao-client-secret-here
+    redirect-uri: http://localhost:8080/auth/kakao/callback
+
+logging:
+  level:
+    org.hibernate: DEBUG
+    com.messageapp: DEBUG
+    feign: DEBUG
