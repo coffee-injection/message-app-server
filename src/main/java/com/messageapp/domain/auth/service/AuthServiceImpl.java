@@ -146,7 +146,7 @@ public class AuthServiceImpl implements AuthService {
                 .expiresIn(jwtProperties.getAccessTokenExpiration() / 1000)
                 .memberId(savedMember.getId())
                 .email(savedMember.getEmail())
-                .isNewMember(true)
+                .isNewMember(false)
                 .build();
     }
 
