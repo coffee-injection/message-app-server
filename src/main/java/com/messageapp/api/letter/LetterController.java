@@ -36,4 +36,14 @@ public class LetterController {
             @Valid @RequestBody LetterRequest request) {
         return letterService.sendLetter(memberId, request.getContent());
     }
+
+    /**
+     * 편지 상세 조회
+     */
+    @GetMapping("/{letterId}")
+    public LetterResponse getLetterDetail(
+            @PathVariable Long letterId,
+            @LoginMember Long memberId) {
+        return letterService.getLetterDetail(letterId, memberId);
+    }
 }

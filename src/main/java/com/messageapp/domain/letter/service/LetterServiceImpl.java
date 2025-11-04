@@ -71,4 +71,24 @@ public class LetterServiceImpl implements LetterService {
 
         return LetterResponse.from(savedLetter);
     }
+
+    @Override
+    @Transactional
+    public LetterResponse getLetterDetail(Long letterId, Long memberId) {
+        // 1. 편지 조회
+        Letter letter = letterRepository.findById(letterId)
+                .orElseThrow(() -> new RuntimeException("편지를 찾을 수 없습니다."));
+
+        // 2. 수신자 권한 확인 (본인의 편지만 조회 가능)
+        if (letter.getReceiver() == null || !letter.getReceiver().getId().equals(memberId)) {
+            throw new RuntimeException("해당 편지를 조회할 권한이 없습니다.");
+        }
+
+        // 3. 편지를 읽음 상태로 변경
+        letter.markAsRead();
+
+        log.info("편지 상세 조회: letterId = {}, memberId = {}", letterId, memberId);
+
+        return LetterResponse.from(letter);
+    }
 }

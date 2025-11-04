@@ -15,4 +15,9 @@ public interface LetterService {
      * 편지 발송 (랜덤 수신자 매칭)
      */
     LetterResponse sendLetter(Long senderId, String content);
+
+    /**
+     * 편지 상세 조회
+     */
+    LetterResponse getLetterDetail(Long letterId, Long memberId);
 }
