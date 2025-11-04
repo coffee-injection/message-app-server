@@ -1,8 +1,10 @@
 package com.messageapp.api.letter;
 
+import com.messageapp.domain.letter.dto.LetterRequest;
 import com.messageapp.domain.letter.dto.LetterResponse;
 import com.messageapp.domain.letter.service.LetterService;
 import com.messageapp.global.auth.LoginMember;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -23,5 +25,15 @@ public class LetterController {
     @GetMapping("/list")
     public List<LetterResponse> getReceivedLetters(@LoginMember Long memberId) {
         return letterService.getReceivedLetters(memberId);
+    }
+
+    /**
+     * 편지 발송 (랜덤 수신자 매칭)
+     */
+    @PostMapping("/send")
+    public LetterResponse sendLetter(
+            @LoginMember Long memberId,
+            @Valid @RequestBody LetterRequest request) {
+        return letterService.sendLetter(memberId, request.getContent());
     }
 }
