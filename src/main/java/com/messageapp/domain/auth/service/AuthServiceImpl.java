@@ -130,7 +130,7 @@ public class AuthServiceImpl implements AuthService {
                 .name(nickname)
                 .oauthId(kakaoId)
                 .socialInfo("KAKAO")
-                .isNew(true)
+                .isNew(false)
                 .build();
 
         Member savedMember = memberRepository.save(newMember);
