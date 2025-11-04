@@ -33,7 +33,8 @@ public class AuthController {
         String loginUrl = "https://kauth.kakao.com/oauth/authorize" +
                 "?client_id=" + kakaoClientId +
                 "&redirect_uri=" + kakaoRedirectUri +
-                "&response_type=code";
+                "&response_type=code" +
+                "&prompt=login";
         return new KakaoLoginUrlResponse(loginUrl);
     }
 
