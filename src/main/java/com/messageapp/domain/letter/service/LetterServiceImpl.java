@@ -25,7 +25,6 @@ public class LetterServiceImpl implements LetterService {
     private final MemberRepository memberRepository;
 
     @Override
-    @Transactional
     public List<LetterIdResponse> getReceivedLetters(Long memberId) {
         List<Letter> letters = letterRepository.findByReceiverIdOrderByCreatedAtDesc(memberId);
 
