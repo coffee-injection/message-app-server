@@ -1,5 +1,7 @@
 package com.messageapp.global.auth;
 
+import com.messageapp.global.error.AppException;
+import com.messageapp.global.error.ErrorCode;
 import com.messageapp.global.jwt.JwtTokenProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -34,13 +36,13 @@ public class LoginMemberArgumentResolver implements HandlerMethodArgumentResolve
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new RuntimeException("Authorization 헤더가 없거나 형식이 올바르지 않습니다.");
+            throw new AppException(ErrorCode.INVALID_TOKEN);
         }
 
         String token = authHeader.replace("Bearer ", "");
 
         if (!jwtTokenProvider.validateToken(token)) {
-            throw new RuntimeException("유효하지 않은 토큰입니다.");
+            throw new AppException(ErrorCode.INVALID_TOKEN);
         }
 
         Long memberId = jwtTokenProvider.getMemberIdFromToken(token);

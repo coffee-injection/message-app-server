@@ -1,5 +1,6 @@
 package com.messageapp.domain.letter.service;
 
+import com.messageapp.domain.letter.dto.LetterIdResponse;
 import com.messageapp.domain.letter.dto.LetterResponse;
 import com.messageapp.domain.letter.entity.Letter;
 import com.messageapp.domain.letter.repository.LetterRepository;
@@ -25,16 +26,13 @@ public class LetterServiceImpl implements LetterService {
 
     @Override
     @Transactional
-    public List<LetterResponse> getReceivedLetters(Long memberId) {
+    public List<LetterIdResponse> getReceivedLetters(Long memberId) {
         List<Letter> letters = letterRepository.findByReceiverIdOrderByCreatedAtDesc(memberId);
 
-        // 각 편지를 읽음 상태로 변경 (DELIVERED -> READ)
-        letters.forEach(Letter::markAsRead);
-
-        log.info("수신 편지 목록 조회 및 읽음 처리: memberId = {}, count = {}", memberId, letters.size());
+        log.info("수신 편지 목록 조회: memberId = {}, count = {}", memberId, letters.size());
 
         return letters.stream()
-                .map(LetterResponse::from)
+                .map(LetterIdResponse::from)
                 .toList();
     }
 

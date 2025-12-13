@@ -13,8 +13,10 @@ out/
 # Application properties
 application-local.*
 application-dev.*
-application-prod.*
 application.yml
+
+# Environment variables
+.env
 
 # Logs
 logs/

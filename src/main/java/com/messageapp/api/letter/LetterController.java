@@ -1,5 +1,6 @@
 package com.messageapp.api.letter;
 
+import com.messageapp.domain.letter.dto.LetterIdResponse;
 import com.messageapp.domain.letter.dto.LetterRequest;
 import com.messageapp.domain.letter.dto.LetterResponse;
 import com.messageapp.domain.letter.service.LetterService;
@@ -23,7 +24,7 @@ public class LetterController {
      * 수신한 편지 목록 조회
      */
     @GetMapping("/list")
-    public List<LetterResponse> getReceivedLetters(@LoginMember Long memberId) {
+    public List<LetterIdResponse> getReceivedLetters(@LoginMember Long memberId) {
         return letterService.getReceivedLetters(memberId);
     }
 
