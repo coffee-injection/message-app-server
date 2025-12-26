@@ -20,7 +20,14 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource())) // ✅ CORS 설정 추가
-            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**",
+                    "/swagger-resources/**",
+                    "/webjars/**"
+                ).permitAll()
+                .anyRequest().permitAll())
             .csrf(AbstractHttpConfigurer::disable)
             .headers(AbstractHttpConfigurer::disable);  // 헤더 보안 전체 비활성화
 

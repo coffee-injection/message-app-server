@@ -29,7 +29,10 @@ public class SuccessResponseAdvice implements ResponseBodyAdvice<Object> {
         HttpStatus resolve = HttpStatus.resolve(status);
 
         String requestPath = request.getURI().getPath();
-        if (requestPath.startsWith("/actuator/prometheus")) {
+        // Swagger/OpenAPI 경로 제외
+        if (requestPath.startsWith("/actuator/prometheus") ||
+            requestPath.startsWith("/v3/api-docs") ||
+            requestPath.startsWith("/swagger-ui")) {
             return body;  // 원래 Spring Boot 기본 응답 유지
         }
 
