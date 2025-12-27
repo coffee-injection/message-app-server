@@ -17,4 +17,9 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
      */
     @Query("SELECT m FROM Member m WHERE m.id != :senderId AND m.status = 'ACTIVE'")
     List<Member> findActiveMembers(@Param("senderId") Long senderId);
+
+    /**
+     * 닉네임 중복 확인
+     */
+    boolean existsByName(String name);
 }
