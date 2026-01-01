@@ -17,4 +17,7 @@ public class JwtTokenResponse {
     private Long memberId;
     private String email;
     private Boolean isNewMember; // 최초 가입 여부
+    private String nickname;
+    private String islandName;
+    private Integer profileImageIndex;
 }

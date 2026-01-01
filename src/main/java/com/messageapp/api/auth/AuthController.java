@@ -60,7 +60,7 @@ public class AuthController {
         return authService.kakaoLogin(kakaoLoginRequest.getCode());
     }
 
-    @Operation(summary = "회원가입 완료", description = "닉네임을 입력하여 회원가입을 완료하고 JWT 토큰을 발급받습니다.")
+    @Operation(summary = "회원가입 완료", description = "닉네임, 섬 이름, 프로필 이미지를 입력하여 회원가입을 완료하고 JWT 토큰을 발급받습니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "회원가입 완료",
                     content = @Content(schema = @Schema(implementation = JwtTokenResponse.class))),
@@ -73,6 +73,6 @@ public class AuthController {
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody SignupCompleteRequest request) {
         String token = authHeader.replace("Bearer ", "");
-        return authService.completeSignup(token, request.getNickname());
+        return authService.completeSignup(token, request.getNickname(), request.getIslandName(), request.getProfileImageIndex());
     }
 }

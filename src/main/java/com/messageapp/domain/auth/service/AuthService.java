@@ -6,5 +6,5 @@ public interface AuthService {
 
     JwtTokenResponse kakaoLogin(String authorizationCode);
 
-    JwtTokenResponse completeSignup(String token, String nickname);
+    JwtTokenResponse completeSignup(String token, String nickname, String islandName, Integer profileImageIndex);
 }

@@ -104,7 +104,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public JwtTokenResponse completeSignup(String token, String nickname) {
+    public JwtTokenResponse completeSignup(String token, String nickname, String islandName, Integer profileImageIndex) {
         // 1. JWT 검증 및 타입 확인
         if (!jwtTokenProvider.validateToken(token)) {
             throw new RuntimeException("유효하지 않은 토큰입니다.");
@@ -128,6 +128,8 @@ public class AuthServiceImpl implements AuthService {
         Member newMember = Member.builder()
                 .email(email)
                 .name(nickname)
+                .islandName(islandName)
+                .profileImageIndex(profileImageIndex)
                 .oauthId(kakaoId)
                 .socialInfo("KAKAO")
                 .isNew(false)
@@ -147,6 +149,9 @@ public class AuthServiceImpl implements AuthService {
                 .memberId(savedMember.getId())
                 .email(savedMember.getEmail())
                 .isNewMember(false)
+                .nickname(savedMember.getName())
+                .islandName(savedMember.getIslandName())
+                .profileImageIndex(savedMember.getProfileImageIndex())
                 .build();
     }
 
