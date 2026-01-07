@@ -9,4 +9,6 @@ public interface BookmarkService {
     void saveLetter(Long memberId, Long letterId);
 
     List<LetterResponse> getBookmarkList(Long memberId);
+
+    void deleteLetter(Long memberId, Long letterId);
 }

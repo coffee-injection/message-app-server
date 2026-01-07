@@ -67,4 +67,18 @@ public class BookmarkServiceImpl implements BookmarkService {
                 .map(LetterResponse::from)
                 .toList();
     }
+
+    @Override
+    @Transactional
+    public void deleteLetter(Long memberId, Long letterId) {
+        // 1. 북마크 존재 확인
+        if (!bookmarkRepository.existsByMemberIdAndLetterId(memberId, letterId)) {
+            throw new RuntimeException("북마크를 찾을 수 없습니다.");
+        }
+
+        // 2. 북마크 삭제
+        bookmarkRepository.deleteByMemberIdAndLetterId(memberId, letterId);
+
+        log.info("북마크 삭제 완료: memberId = {}, letterId = {}", memberId, letterId);
+    }
 }

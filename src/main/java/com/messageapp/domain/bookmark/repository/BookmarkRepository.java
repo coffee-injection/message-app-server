@@ -26,4 +26,9 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
      * 특정 회원의 북마크 목록 조회 (생성일 내림차순)
      */
     List<Bookmark> findByMemberIdOrderByCreatedAtDesc(Long memberId);
+
+    /**
+     * 특정 회원의 특정 편지 북마크 삭제
+     */
+    void deleteByMemberIdAndLetterId(Long memberId, Long letterId);
 }
