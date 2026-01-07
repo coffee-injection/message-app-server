@@ -66,6 +66,9 @@ public class AuthServiceImpl implements AuthService {
                     .memberId(existingMember.getId())
                     .email(existingMember.getEmail())
                     .isNewMember(false)
+                    .nickname(existingMember.getName())
+                    .islandName(existingMember.getIslandName())
+                    .profileImageIndex(existingMember.getProfileImageIndex())
                     .build();
         } else {
             // 신규 회원 - 임시 JWT 발급 (DB 저장 X)
