@@ -18,6 +18,8 @@ public class LetterResponse {
     private Long letterId;
     private String content;
     private String senderName;
+    private String senderIslandName;
+    private Integer senderProfileImageIndex;
     private LetterStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime matchedAt;
@@ -28,6 +30,8 @@ public class LetterResponse {
                 .letterId(letter.getId())
                 .content(letter.getContent())
                 .senderName(letter.getSender().getName())
+                .senderIslandName(letter.getSender().getIslandName())
+                .senderProfileImageIndex(letter.getSender().getProfileImageIndex())
                 .status(letter.getStatus())
                 .createdAt(letter.getCreatedAt())
                 .matchedAt(letter.getMatchedAt())
