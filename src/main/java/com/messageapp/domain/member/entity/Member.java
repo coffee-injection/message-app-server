@@ -67,7 +67,7 @@ public class Member extends BaseEntity {
 
     public void updateProfileImageIndex(Integer profileImageIndex) {
         if (profileImageIndex != null && (profileImageIndex < 1 || profileImageIndex > 21)) {
-            throw new IllegalArgumentException("프로필 이미지 인덱스는 1~12 범위여야 합니다.");
+            throw new IllegalArgumentException("프로필 이미지 인덱스는 1~21 범위여야 합니다.");
         }
         this.profileImageIndex = profileImageIndex;
     }
