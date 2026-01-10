@@ -5,6 +5,8 @@ import com.messageapp.domain.member.dto.UpdateProfileRequest;
 import com.messageapp.domain.member.dto.UpdateProfileResponse;
 import com.messageapp.domain.member.entity.Member;
 import com.messageapp.domain.member.repository.MemberRepository;
+import com.messageapp.global.exception.business.member.DuplicateNicknameException;
+import com.messageapp.global.exception.business.member.MemberNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,7 +35,7 @@ public class MemberServiceImpl implements MemberService {
     public UpdateProfileResponse updateProfile(Long memberId, UpdateProfileRequest request) {
         // 1. 회원 조회
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new RuntimeException("회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> MemberNotFoundException.EXCEPTION);
 
         // 2. 닉네임 변경
         if (request.getNickname() != null) {
@@ -41,7 +43,7 @@ public class MemberServiceImpl implements MemberService {
             if (!request.getNickname().equals(member.getName())) {
                 boolean exists = memberRepository.existsByName(request.getNickname());
                 if (exists) {
-                    throw new RuntimeException("이미 사용 중인 닉네임입니다.");
+                    throw DuplicateNicknameException.EXCEPTION;
                 }
                 member.updateName(request.getNickname());
             }

@@ -7,6 +7,9 @@ import com.messageapp.domain.member.repository.MemberRepository;
 import com.messageapp.domain.report.dto.ReportResponse;
 import com.messageapp.domain.report.entity.Report;
 import com.messageapp.domain.report.repository.ReportRepository;
+import com.messageapp.global.exception.business.letter.LetterNotFoundException;
+import com.messageapp.global.exception.business.report.DuplicateReportException;
+import com.messageapp.global.exception.business.report.ReporterNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,15 +30,15 @@ public class ReportServiceImpl implements ReportService {
     public ReportResponse reportLetter(Long letterId, Long reporterId, String reason) {
         // 1. 편지 조회
         Letter letter = letterRepository.findById(letterId)
-                .orElseThrow(() -> new RuntimeException("신고할 편지를 찾을 수 없습니다."));
+                .orElseThrow(() -> LetterNotFoundException.EXCEPTION);
 
         // 2. 신고자 조회
         Member reporter = memberRepository.findById(reporterId)
-                .orElseThrow(() -> new RuntimeException("신고자를 찾을 수 없습니다."));
+                .orElseThrow(() -> ReporterNotFoundException.EXCEPTION);
 
         // 3. 중복 신고 체크
         if (reportRepository.existsByLetterIdAndReporterId(letterId, reporterId)) {
-            throw new RuntimeException("이미 신고한 편지입니다.");
+            throw DuplicateReportException.EXCEPTION;
         }
 
         // 4. 신고 생성 및 저장

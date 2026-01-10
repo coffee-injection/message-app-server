@@ -7,6 +7,11 @@ import com.messageapp.domain.letter.entity.Letter;
 import com.messageapp.domain.letter.repository.LetterRepository;
 import com.messageapp.domain.member.entity.Member;
 import com.messageapp.domain.member.repository.MemberRepository;
+import com.messageapp.global.exception.business.bookmark.BookmarkAccessDeniedException;
+import com.messageapp.global.exception.business.bookmark.BookmarkNotFoundException;
+import com.messageapp.global.exception.business.bookmark.DuplicateBookmarkException;
+import com.messageapp.global.exception.business.letter.LetterNotFoundException;
+import com.messageapp.global.exception.business.member.MemberNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,20 +34,20 @@ public class BookmarkServiceImpl implements BookmarkService {
     public void saveLetter(Long memberId, Long letterId) {
         // 1. 편지 조회
         Letter letter = letterRepository.findById(letterId)
-                .orElseThrow(() -> new RuntimeException("북마크할 편지를 찾을 수 없습니다."));
+                .orElseThrow(() -> LetterNotFoundException.EXCEPTION);
 
         // 2. 회원 조회
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new RuntimeException("회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> MemberNotFoundException.EXCEPTION);
 
         // 3. 수신자 확인 (본인에게 수신된 편지만 북마크 가능)
         if (letter.getReceiver() == null || !letter.getReceiver().getId().equals(memberId)) {
-            throw new RuntimeException("본인에게 수신된 편지만 북마크할 수 있습니다.");
+            throw BookmarkAccessDeniedException.EXCEPTION;
         }
 
         // 4. 중복 북마크 체크
         if (bookmarkRepository.existsByMemberIdAndLetterId(memberId, letterId)) {
-            throw new RuntimeException("이미 북마크한 편지입니다.");
+            throw DuplicateBookmarkException.EXCEPTION;
         }
 
         // 5. 북마크 생성 및 저장
@@ -73,7 +78,7 @@ public class BookmarkServiceImpl implements BookmarkService {
     public void deleteLetter(Long memberId, Long letterId) {
         // 1. 북마크 존재 확인
         if (!bookmarkRepository.existsByMemberIdAndLetterId(memberId, letterId)) {
-            throw new RuntimeException("북마크를 찾을 수 없습니다.");
+            throw BookmarkNotFoundException.EXCEPTION;
         }
 
         // 2. 북마크 삭제

@@ -6,6 +6,10 @@ import com.messageapp.domain.letter.entity.Letter;
 import com.messageapp.domain.letter.repository.LetterRepository;
 import com.messageapp.domain.member.entity.Member;
 import com.messageapp.domain.member.repository.MemberRepository;
+import com.messageapp.global.exception.business.letter.LetterAccessDeniedException;
+import com.messageapp.global.exception.business.letter.LetterNotFoundException;
+import com.messageapp.global.exception.business.letter.NoAvailableReceiverException;
+import com.messageapp.global.exception.business.letter.SenderNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -40,13 +44,13 @@ public class LetterServiceImpl implements LetterService {
     public LetterResponse sendLetter(Long senderId, String content) {
         // 1. 발신자 조회
         Member sender = memberRepository.findById(senderId)
-                .orElseThrow(() -> new RuntimeException("발신자를 찾을 수 없습니다."));
+                .orElseThrow(() -> SenderNotFoundException.EXCEPTION);
 
         // 2. 발신자를 제외한 활성 회원 목록 조회
         List<Member> activeMembers = memberRepository.findActiveMembers(senderId);
 
         if (activeMembers.isEmpty()) {
-            throw new RuntimeException("편지를 받을 수 있는 회원이 없습니다.");
+            throw NoAvailableReceiverException.EXCEPTION;
         }
 
         // 3. 랜덤으로 수신자 선택 (ThreadLocalRandom으로 동시성 안전)
@@ -74,11 +78,11 @@ public class LetterServiceImpl implements LetterService {
     public LetterResponse getLetterDetail(Long letterId, Long memberId) {
         // 1. 편지 조회
         Letter letter = letterRepository.findById(letterId)
-                .orElseThrow(() -> new RuntimeException("편지를 찾을 수 없습니다."));
+                .orElseThrow(() -> LetterNotFoundException.EXCEPTION);
 
         // 2. 수신자 권한 확인 (본인의 편지만 조회 가능)
         if (letter.getReceiver() == null || !letter.getReceiver().getId().equals(memberId)) {
-            throw new RuntimeException("해당 편지를 조회할 권한이 없습니다.");
+            throw LetterAccessDeniedException.EXCEPTION;
         }
 
         // 3. 편지를 읽음 상태로 변경

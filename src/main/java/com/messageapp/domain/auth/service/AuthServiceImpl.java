@@ -8,6 +8,11 @@ import com.messageapp.domain.auth.dto.KakaoTokenResponse;
 import com.messageapp.domain.member.entity.Member;
 import com.messageapp.domain.member.repository.MemberRepository;
 import com.messageapp.global.config.JwtProperties;
+import com.messageapp.global.exception.auth.InvalidAccessTokenException;
+import com.messageapp.global.exception.business.member.DuplicateMemberException;
+import com.messageapp.global.exception.external.KakaoLoginFailedException;
+import com.messageapp.global.exception.external.KakaoUserInfoFailedException;
+import com.messageapp.global.exception.validation.InvalidTempTokenException;
 import com.messageapp.global.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -101,7 +106,7 @@ public class AuthServiceImpl implements AuthService {
             );
         } catch (Exception e) {
             log.error("카카오 Access Token 발급 실패: {}", e.getMessage());
-            throw new RuntimeException("카카오 로그인 처리 중 오류가 발생했습니다.");
+            throw KakaoLoginFailedException.EXCEPTION;
         }
     }
 
@@ -110,12 +115,12 @@ public class AuthServiceImpl implements AuthService {
     public JwtTokenResponse completeSignup(String token, String nickname, String islandName, Integer profileImageIndex) {
         // 1. JWT 검증 및 타입 확인
         if (!jwtTokenProvider.validateToken(token)) {
-            throw new RuntimeException("유효하지 않은 토큰입니다.");
+            throw InvalidAccessTokenException.EXCEPTION;
         }
 
         String tokenType = jwtTokenProvider.getTokenType(token);
         if (!"temp".equals(tokenType)) {
-            throw new RuntimeException("임시 토큰이 아닙니다.");
+            throw InvalidTempTokenException.EXCEPTION;
         }
 
         // 2. JWT에서 정보 추출
@@ -124,7 +129,7 @@ public class AuthServiceImpl implements AuthService {
 
         // 3. 중복 가입 체크
         if (memberRepository.findByEmail(email).isPresent()) {
-            throw new RuntimeException("이미 가입된 회원입니다.");
+            throw DuplicateMemberException.EXCEPTION;
         }
 
         // 4. 회원 생성 및 저장
@@ -166,7 +171,7 @@ public class AuthServiceImpl implements AuthService {
             return kakaoApiClient.getUserInfo("Bearer " + accessToken);
         } catch (Exception e) {
             log.error("카카오 사용자 정보 조회 실패: {}", e.getMessage());
-            throw new RuntimeException("카카오 사용자 정보 조회 중 오류가 발생했습니다.");
+            throw KakaoUserInfoFailedException.EXCEPTION;
         }
     }
 }

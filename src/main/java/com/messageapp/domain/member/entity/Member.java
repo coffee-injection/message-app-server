@@ -1,6 +1,8 @@
 package com.messageapp.domain.member.entity;
 
 import com.messageapp.global.common.BaseEntity;
+import com.messageapp.global.exception.validation.InvalidIslandNameException;
+import com.messageapp.global.exception.validation.InvalidProfileImageIndexException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -60,14 +62,14 @@ public class Member extends BaseEntity {
 
     public void updateIslandName(String islandName) {
         if (islandName != null && (islandName.length() < 2 || islandName.length() > 8)) {
-            throw new IllegalArgumentException("섬 이름은 2~8글자여야 합니다.");
+            throw InvalidIslandNameException.EXCEPTION;
         }
         this.islandName = islandName;
     }
 
     public void updateProfileImageIndex(Integer profileImageIndex) {
         if (profileImageIndex != null && (profileImageIndex < 1 || profileImageIndex > 21)) {
-            throw new IllegalArgumentException("프로필 이미지 인덱스는 1~21 범위여야 합니다.");
+            throw InvalidProfileImageIndexException.EXCEPTION;
         }
         this.profileImageIndex = profileImageIndex;
     }
