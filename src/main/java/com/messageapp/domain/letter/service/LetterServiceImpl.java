@@ -3,6 +3,7 @@ package com.messageapp.domain.letter.service;
 import com.messageapp.domain.letter.dto.LetterIdResponse;
 import com.messageapp.domain.letter.dto.LetterResponse;
 import com.messageapp.domain.letter.entity.Letter;
+import com.messageapp.domain.letter.entity.LetterStatus;
 import com.messageapp.domain.letter.repository.LetterRepository;
 import com.messageapp.domain.member.entity.Member;
 import com.messageapp.domain.member.repository.MemberRepository;
@@ -30,9 +31,10 @@ public class LetterServiceImpl implements LetterService {
 
     @Override
     public List<LetterIdResponse> getReceivedLetters(Long memberId) {
-        List<Letter> letters = letterRepository.findByReceiverIdOrderByCreatedAtDesc(memberId);
+        List<Letter> letters = letterRepository.findByReceiverIdAndStatusOrderByCreatedAtDesc(
+                memberId, LetterStatus.DELIVERED);
 
-        log.info("수신 편지 목록 조회: memberId = {}, count = {}", memberId, letters.size());
+        log.info("읽지 않은 수신 편지 목록 조회: memberId = {}, count = {}", memberId, letters.size());
 
         return letters.stream()
                 .map(LetterIdResponse::from)
