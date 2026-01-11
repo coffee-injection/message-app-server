@@ -1,5 +1,7 @@
 package com.messageapp.api.auth;
 
+import com.messageapp.domain.auth.dto.GoogleLoginRequest;
+import com.messageapp.domain.auth.dto.GoogleLoginUrlResponse;
 import com.messageapp.domain.auth.dto.JwtTokenResponse;
 import com.messageapp.domain.auth.dto.KakaoLoginRequest;
 import com.messageapp.domain.auth.dto.KakaoLoginUrlResponse;
@@ -35,6 +37,12 @@ public class AuthController {
     @Value("${oauth.kakao.redirect-uri}")
     private String kakaoRedirectUri;
 
+    @Value("${oauth.google.client-id}")
+    private String googleClientId;
+
+    @Value("${oauth.google.redirect-uri}")
+    private String googleRedirectUri;
+
     @Operation(summary = "카카오 로그인 URL 조회", description = "카카오 OAuth 로그인 URL을 반환합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "성공",
@@ -60,6 +68,35 @@ public class AuthController {
     @PostMapping("/login")
     public JwtTokenResponse kakaoLogin(@Valid @RequestBody KakaoLoginRequest kakaoLoginRequest) {
         return authService.kakaoLogin(kakaoLoginRequest.getCode());
+    }
+
+    @Operation(summary = "구글 로그인 URL 조회", description = "구글 OAuth 로그인 URL을 반환합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "성공",
+                    content = @Content(schema = @Schema(implementation = GoogleLoginUrlResponse.class)))
+    })
+    @GetMapping("/google/login-url")
+    public GoogleLoginUrlResponse getGoogleLoginUrl() {
+        String loginUrl = "https://accounts.google.com/o/oauth2/v2/auth" +
+                "?client_id=" + googleClientId +
+                "&redirect_uri=" + googleRedirectUri +
+                "&response_type=code" +
+                "&scope=openid email profile" +
+                "&access_type=offline" +
+                "&prompt=consent";
+        return new GoogleLoginUrlResponse(loginUrl);
+    }
+
+    @Operation(summary = "구글 로그인", description = "구글 인가 코드로 로그인하여 JWT 토큰을 발급받습니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "로그인 성공",
+                    content = @Content(schema = @Schema(implementation = JwtTokenResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청", content = @Content),
+            @ApiResponse(responseCode = "401", description = "인증 실패", content = @Content)
+    })
+    @PostMapping("/google/login")
+    public JwtTokenResponse googleLogin(@Valid @RequestBody GoogleLoginRequest googleLoginRequest) {
+        return authService.googleLogin(googleLoginRequest.getCode());
     }
 
     @Operation(summary = "회원가입 완료", description = "닉네임, 섬 이름, 프로필 이미지를 입력하여 회원가입을 완료하고 JWT 토큰을 발급받습니다.")

@@ -1,8 +1,12 @@
 package com.messageapp.domain.auth.service;
 
+import com.messageapp.domain.auth.client.GoogleApiClient;
+import com.messageapp.domain.auth.client.GoogleOAuthClient;
+import com.messageapp.domain.auth.client.GoogleUserResponse;
 import com.messageapp.domain.auth.client.KakaoApiClient;
 import com.messageapp.domain.auth.client.KakaoOAuthClient;
 import com.messageapp.domain.auth.client.KakaoUserResponse;
+import com.messageapp.domain.auth.dto.GoogleTokenResponse;
 import com.messageapp.domain.auth.dto.JwtTokenResponse;
 import com.messageapp.domain.auth.dto.KakaoTokenResponse;
 import com.messageapp.domain.member.entity.Member;
@@ -12,6 +16,8 @@ import com.messageapp.global.exception.auth.InvalidAccessTokenException;
 import com.messageapp.global.exception.business.member.DuplicateMemberException;
 import com.messageapp.global.exception.business.member.MemberAlreadyWithdrawnException;
 import com.messageapp.global.exception.business.member.MemberNotFoundException;
+import com.messageapp.global.exception.external.GoogleLoginFailedException;
+import com.messageapp.global.exception.external.GoogleUserInfoFailedException;
 import com.messageapp.global.exception.external.KakaoLoginFailedException;
 import com.messageapp.global.exception.external.KakaoUnlinkFailedException;
 import com.messageapp.global.exception.external.KakaoUserInfoFailedException;
@@ -23,6 +29,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+
 @Slf4j
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -31,6 +42,8 @@ public class AuthServiceImpl implements AuthService {
 
     private final KakaoOAuthClient kakaoOAuthClient;
     private final KakaoApiClient kakaoApiClient;
+    private final GoogleOAuthClient googleOAuthClient;
+    private final GoogleApiClient googleApiClient;
     private final MemberRepository memberRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final JwtProperties jwtProperties;
@@ -46,6 +59,15 @@ public class AuthServiceImpl implements AuthService {
 
     @Value("${oauth.kakao.admin-key}")
     private String kakaoAdminKey;
+
+    @Value("${oauth.google.client-id}")
+    private String googleClientId;
+
+    @Value("${oauth.google.client-secret}")
+    private String googleClientSecret;
+
+    @Value("${oauth.google.redirect-uri}")
+    private String googleRedirectUri;
 
     @Override
     @Transactional
@@ -98,6 +120,59 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    @Override
+    @Transactional
+    public JwtTokenResponse googleLogin(String authorizationCode) {
+
+        authorizationCode = URLDecoder.decode(authorizationCode, StandardCharsets.UTF_8);
+
+        // 1. 인가 코드로 구글 Access Token 을 발급받는다.
+        GoogleTokenResponse googleToken = getGoogleAccessToken(authorizationCode);
+
+        // 2. 구글 Access Token 으로 사용자 정보를 조회한다.
+        GoogleUserResponse googleUser = getGoogleUserInfo(googleToken.getAccessToken());
+
+        // 3. 가상 이메일을 생성한다.
+        String virtualEmail = googleUser.generateVirtualEmail();
+        String googleId = googleUser.getId();
+
+        // 4. 기존 회원인지 확인
+        Member existingMember = memberRepository.findByEmail(virtualEmail).orElse(null);
+
+        if (existingMember != null) {
+            // 기존 회원 - 일반 JWT 발급
+            String accessToken = jwtTokenProvider.generateAccessToken(existingMember.getId(), existingMember.getEmail());
+
+            log.info("기존 회원 로그인 성공: memberId = {}, email = {}", existingMember.getId(), virtualEmail);
+
+            return JwtTokenResponse.builder()
+                    .accessToken(accessToken)
+                    .tokenType("Bearer")
+                    .expiresIn(jwtProperties.getAccessTokenExpiration() / 1000)
+                    .memberId(existingMember.getId())
+                    .email(existingMember.getEmail())
+                    .isNewMember(false)
+                    .nickname(existingMember.getName())
+                    .islandName(existingMember.getIslandName())
+                    .profileImageIndex(existingMember.getProfileImageIndex())
+                    .build();
+        } else {
+            // 신규 회원 - 임시 JWT 발급 (DB 저장 X)
+            String tempAccessToken = jwtTokenProvider.generateTempAccessToken(googleId, virtualEmail);
+
+            log.info("신규 회원 구글 인증 성공: googleId = {}, email = {}", googleId, virtualEmail);
+
+            return JwtTokenResponse.builder()
+                    .accessToken(tempAccessToken)
+                    .tokenType("Bearer")
+                    .expiresIn(jwtProperties.getAccessTokenExpiration() / 1000)
+                    .memberId(null) // 아직 회원가입 전이므로 null
+                    .email(virtualEmail)
+                    .isNewMember(true)
+                    .build();
+        }
+    }
+
     /**
      * 인가 코드로 카카오 Access Token 발급
      */
@@ -113,6 +188,25 @@ public class AuthServiceImpl implements AuthService {
         } catch (Exception e) {
             log.error("카카오 Access Token 발급 실패: {}", e.getMessage());
             throw KakaoLoginFailedException.EXCEPTION;
+        }
+    }
+
+    /**
+     * 인가 코드로 구글 Access Token 발급
+     */
+    private GoogleTokenResponse getGoogleAccessToken(String authorizationCode) {
+        try {
+            Map<String, String> params = new HashMap<>();
+            params.put("grant_type", "authorization_code");
+            params.put("client_id", googleClientId);
+            params.put("client_secret", googleClientSecret);
+            params.put("redirect_uri", googleRedirectUri);
+            params.put("code", authorizationCode);
+
+            return googleOAuthClient.getAccessToken(params);
+        } catch (Exception e) {
+            log.error("구글 Access Token 발급 실패: {}", e.getMessage());
+            throw GoogleLoginFailedException.EXCEPTION;
         }
     }
 
@@ -178,6 +272,18 @@ public class AuthServiceImpl implements AuthService {
         } catch (Exception e) {
             log.error("카카오 사용자 정보 조회 실패: {}", e.getMessage());
             throw KakaoUserInfoFailedException.EXCEPTION;
+        }
+    }
+
+    /**
+     * 구글 Access Token으로 사용자 정보 조회
+     */
+    private GoogleUserResponse getGoogleUserInfo(String accessToken) {
+        try {
+            return googleApiClient.getUserInfo("Bearer " + accessToken);
+        } catch (Exception e) {
+            log.error("구글 사용자 정보 조회 실패: {}", e.getMessage());
+            throw GoogleUserInfoFailedException.EXCEPTION;
         }
     }
 

@@ -51,6 +51,8 @@ public enum ErrorCode {
     KAKAO_LOGIN_FAILED(500, "카카오 로그인 처리 중 오류가 발생했습니다."),
     KAKAO_USER_INFO_FAILED(500, "카카오 사용자 정보 조회 중 오류가 발생했습니다."),
     KAKAO_UNLINK_FAILED(500, "카카오 연결 끊기 처리 중 오류가 발생했습니다."),
+    GOOGLE_LOGIN_FAILED(500, "구글 로그인 처리 중 오류가 발생했습니다."),
+    GOOGLE_USER_INFO_FAILED(500, "구글 사용자 정보 조회 중 오류가 발생했습니다."),
     MEMBER_ALREADY_WITHDRAWN(400, "이미 탈퇴한 회원입니다."),
     INTERNAL_SERVER_ERROR(500,"서버 에러"),
     JSON_PARSE_ERROR(500,"json 파싱 에러 입니다.");

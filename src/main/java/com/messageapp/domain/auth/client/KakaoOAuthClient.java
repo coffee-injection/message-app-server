@@ -2,6 +2,7 @@ package com.messageapp.domain.auth.client;
 
 import com.messageapp.domain.auth.dto.KakaoTokenResponse;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -15,7 +16,7 @@ public interface KakaoOAuthClient {
     /**
      * 인가 코드로 Access Token 발급
      */
-    @PostMapping("/oauth/token")
+    @PostMapping(value = "/oauth/token", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     KakaoTokenResponse getAccessToken(
             @RequestParam("grant_type") String grantType,
             @RequestParam("client_id") String clientId,
