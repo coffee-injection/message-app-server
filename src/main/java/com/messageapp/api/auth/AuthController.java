@@ -5,6 +5,7 @@ import com.messageapp.domain.auth.dto.KakaoLoginRequest;
 import com.messageapp.domain.auth.dto.KakaoLoginUrlResponse;
 import com.messageapp.domain.auth.dto.SignupCompleteRequest;
 import com.messageapp.domain.auth.service.AuthService;
+import com.messageapp.global.auth.LoginMember;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -74,5 +75,18 @@ public class AuthController {
             @Valid @RequestBody SignupCompleteRequest request) {
         String token = authHeader.replace("Bearer ", "");
         return authService.completeSignup(token, request.getNickname(), request.getIslandName(), request.getProfileImageIndex());
+    }
+
+    @Operation(summary = "회원 탈퇴", description = "현재 로그인한 회원을 탈퇴 처리합니다. 카카오 연결이 끊어지고 회원 상태가 INACTIVE로 변경됩니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "회원 탈퇴 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (이미 탈퇴한 회원)", content = @Content),
+            @ApiResponse(responseCode = "401", description = "인증 실패", content = @Content),
+            @ApiResponse(responseCode = "404", description = "회원을 찾을 수 없음", content = @Content),
+            @ApiResponse(responseCode = "500", description = "카카오 연결 끊기 실패", content = @Content)
+    })
+    @DeleteMapping("/withdraw")
+    public void withdrawMember(@Parameter(hidden = true) @LoginMember Long memberId) {
+        authService.withdrawMember(memberId);
     }
 }

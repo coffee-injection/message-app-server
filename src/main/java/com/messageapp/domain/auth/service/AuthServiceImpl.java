@@ -10,7 +10,10 @@ import com.messageapp.domain.member.repository.MemberRepository;
 import com.messageapp.global.config.JwtProperties;
 import com.messageapp.global.exception.auth.InvalidAccessTokenException;
 import com.messageapp.global.exception.business.member.DuplicateMemberException;
+import com.messageapp.global.exception.business.member.MemberAlreadyWithdrawnException;
+import com.messageapp.global.exception.business.member.MemberNotFoundException;
 import com.messageapp.global.exception.external.KakaoLoginFailedException;
+import com.messageapp.global.exception.external.KakaoUnlinkFailedException;
 import com.messageapp.global.exception.external.KakaoUserInfoFailedException;
 import com.messageapp.global.exception.validation.InvalidTempTokenException;
 import com.messageapp.global.jwt.JwtTokenProvider;
@@ -40,6 +43,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Value("${oauth.kakao.redirect-uri}")
     private String kakaoRedirectUri;
+
+    @Value("${oauth.kakao.admin-key}")
+    private String kakaoAdminKey;
 
     @Override
     @Transactional
@@ -173,5 +179,39 @@ public class AuthServiceImpl implements AuthService {
             log.error("카카오 사용자 정보 조회 실패: {}", e.getMessage());
             throw KakaoUserInfoFailedException.EXCEPTION;
         }
+    }
+
+    @Override
+    @Transactional
+    public void withdrawMember(Long memberId) {
+        // 1. 회원 조회
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> MemberNotFoundException.EXCEPTION);
+
+        // 2. 이미 탈퇴한 회원인지 확인
+        if (!member.isActive()) {
+            throw MemberAlreadyWithdrawnException.EXCEPTION;
+        }
+
+        // 3. 카카오 연결 끊기 (소셜 로그인 연동 해제)
+        try {
+            String oauthId = member.getOauthId();
+            if (oauthId != null && !oauthId.isEmpty()) {
+                kakaoApiClient.unlinkUser(
+                        "KakaoAK " + kakaoAdminKey,
+                        "user_id",
+                        oauthId
+                );
+                log.info("카카오 연결 끊기 성공: memberId = {}, oauthId = {}", memberId, oauthId);
+            }
+        } catch (Exception e) {
+            log.error("카카오 연결 끊기 실패: memberId = {}, error = {}", memberId, e.getMessage());
+            throw KakaoUnlinkFailedException.EXCEPTION;
+        }
+
+        // 4. 회원 소프트 삭제 (status를 INACTIVE로 변경)
+        member.deactivate();
+
+        log.info("회원 탈퇴 완료: memberId = {}, email = {}", memberId, member.getEmail());
     }
 }
