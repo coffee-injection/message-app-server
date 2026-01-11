@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -77,7 +78,13 @@ public class AuthController {
         return authService.completeSignup(token, request.getNickname(), request.getIslandName(), request.getProfileImageIndex());
     }
 
-    @Operation(summary = "회원 탈퇴", description = "현재 로그인한 회원을 탈퇴 처리합니다. 카카오 연결이 끊어지고 회원 상태가 INACTIVE로 변경됩니다.")
+    @Operation(
+            summary = "회원 탈퇴",
+            description = "현재 로그인한 회원을 탈퇴 처리합니다. 카카오 연결이 끊어지고 회원 상태가 INACTIVE로 변경됩니다.\n\n" +
+                    "**인증 필요**: Authorization 헤더에 Bearer 토큰을 포함해야 합니다.\n\n" +
+                    "**파라미터 없음**: JWT 토큰에서 자동으로 회원 정보를 추출합니다.",
+            security = @SecurityRequirement(name = "JWT")
+    )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "회원 탈퇴 성공"),
             @ApiResponse(responseCode = "400", description = "잘못된 요청 (이미 탈퇴한 회원)", content = @Content),
