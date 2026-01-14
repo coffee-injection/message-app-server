@@ -26,7 +26,7 @@ public class Member extends BaseEntity {
     @Column(name = "member_email", nullable = false, unique = true)
     private String email;
 
-    @Column(name = "member_name", nullable = false, length = 50)
+    @Column(name = "member_name", nullable = false, length = 10)
     private String name;
 
     @Column(name = "island_name", length = 8)
@@ -61,7 +61,7 @@ public class Member extends BaseEntity {
     }
 
     public void updateIslandName(String islandName) {
-        if (islandName != null && (islandName.length() < 2 || islandName.length() > 8)) {
+        if (islandName != null && (islandName.length() < 1 || islandName.length() > 8)) {
             throw InvalidIslandNameException.EXCEPTION;
         }
         this.islandName = islandName;
