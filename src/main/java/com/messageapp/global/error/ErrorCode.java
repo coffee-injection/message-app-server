@@ -24,6 +24,7 @@ public enum ErrorCode {
     AlREADY_REGISTER(404, "이미 등록된 회원입니다"),
 
     /* 400 BAD_REQUEST - 추가: 잘못된 요청, 유효성 검증 실패, 리소스를 찾을 수 없음 */
+    UNSUPPORTED_OAUTH_PROVIDER(400, "지원하지 않는 소셜 로그인 제공자입니다."),
     INVALID_ISLAND_NAME(400, "섬 이름은 2~8글자여야 합니다."),
     INVALID_PROFILE_IMAGE_INDEX(400, "프로필 이미지 인덱스는 1~21 범위여야 합니다."),
     INVALID_TEMP_TOKEN(400, "임시 토큰이 아닙니다."),

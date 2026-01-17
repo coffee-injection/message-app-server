@@ -1,5 +1,6 @@
 package com.messageapp.domain.auth.service;
 
+import com.messageapp.api.auth.OauthProvider;
 import com.messageapp.domain.auth.client.GoogleApiClient;
 import com.messageapp.domain.auth.client.GoogleOAuthClient;
 import com.messageapp.domain.auth.client.GoogleUserResponse;
@@ -19,7 +20,6 @@ import com.messageapp.global.exception.business.member.MemberNotFoundException;
 import com.messageapp.global.exception.external.GoogleLoginFailedException;
 import com.messageapp.global.exception.external.GoogleUserInfoFailedException;
 import com.messageapp.global.exception.external.KakaoLoginFailedException;
-import com.messageapp.global.exception.external.KakaoUnlinkFailedException;
 import com.messageapp.global.exception.external.KakaoUserInfoFailedException;
 import com.messageapp.global.exception.validation.InvalidTempTokenException;
 import com.messageapp.global.jwt.JwtTokenProvider;
@@ -47,6 +47,7 @@ public class AuthServiceImpl implements AuthService {
     private final MemberRepository memberRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final JwtProperties jwtProperties;
+    private final OauthUnlinkService oauthUnlinkService;
 
     @Value("${oauth.kakao.client-id}")
     private String kakaoClientId;
@@ -56,9 +57,6 @@ public class AuthServiceImpl implements AuthService {
 
     @Value("${oauth.kakao.redirect-uri}")
     private String kakaoRedirectUri;
-
-    @Value("${oauth.kakao.admin-key}")
-    private String kakaoAdminKey;
 
     @Value("${oauth.google.client-id}")
     private String googleClientId;
@@ -105,7 +103,7 @@ public class AuthServiceImpl implements AuthService {
                     .build();
         } else {
             // 신규 회원 - 임시 JWT 발급 (DB 저장 X)
-            String tempAccessToken = jwtTokenProvider.generateTempAccessToken(kakaoId, virtualEmail);
+            String tempAccessToken = jwtTokenProvider.generateTempAccessToken(kakaoId, virtualEmail, OauthProvider.KAKAO);
 
             log.info("신규 회원 카카오 인증 성공: kakaoId = {}, email = {}", kakaoId, virtualEmail);
 
@@ -158,7 +156,7 @@ public class AuthServiceImpl implements AuthService {
                     .build();
         } else {
             // 신규 회원 - 임시 JWT 발급 (DB 저장 X)
-            String tempAccessToken = jwtTokenProvider.generateTempAccessToken(googleId, virtualEmail);
+            String tempAccessToken = jwtTokenProvider.generateTempAccessToken(googleId, virtualEmail, OauthProvider.GOOGLE);
 
             log.info("신규 회원 구글 인증 성공: googleId = {}, email = {}", googleId, virtualEmail);
 
@@ -224,7 +222,8 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // 2. JWT에서 정보 추출
-        String kakaoId = jwtTokenProvider.getKakaoIdFromToken(token);
+        String oauthId = jwtTokenProvider.getOauthIdFromToken(token);
+        OauthProvider oauthProvider = jwtTokenProvider.getOauthProviderFromToken(token);
         String email = jwtTokenProvider.getEmailFromToken(token);
 
         // 3. 중복 가입 체크
@@ -238,8 +237,8 @@ public class AuthServiceImpl implements AuthService {
                 .name(nickname)
                 .islandName(islandName)
                 .profileImageIndex(profileImageIndex)
-                .oauthId(kakaoId)
-                .socialInfo("KAKAO")
+                .oauthId(oauthId)
+                .socialInfo(oauthProvider.getValue())
                 .isNew(false)
                 .build();
 
@@ -299,20 +298,13 @@ public class AuthServiceImpl implements AuthService {
             throw MemberAlreadyWithdrawnException.EXCEPTION;
         }
 
-        // 3. 카카오 연결 끊기 (소셜 로그인 연동 해제)
-        try {
-            String oauthId = member.getOauthId();
-            if (oauthId != null && !oauthId.isEmpty()) {
-                kakaoApiClient.unlinkUser(
-                        "KakaoAK " + kakaoAdminKey,
-                        "user_id",
-                        oauthId
-                );
-                log.info("카카오 연결 끊기 성공: memberId = {}, oauthId = {}", memberId, oauthId);
-            }
-        } catch (Exception e) {
-            log.error("카카오 연결 끊기 실패: memberId = {}, error = {}", memberId, e.getMessage());
-            throw KakaoUnlinkFailedException.EXCEPTION;
+        // 3. 소셜 로그인 연결 해제 (Strategy 패턴 적용)
+        String oauthId = member.getOauthId();
+        if (oauthId != null && !oauthId.isEmpty()) {
+            OauthProvider provider = OauthProvider.fromString(member.getSocialInfo());
+            oauthUnlinkService.unlink(provider, oauthId);
+            log.info("소셜 로그인 연결 해제 성공: memberId = {}, provider = {}, oauthId = {}",
+                    memberId, provider.getValue(), oauthId);
         }
 
         // 4. 회원 소프트 삭제 (status를 INACTIVE로 변경)
