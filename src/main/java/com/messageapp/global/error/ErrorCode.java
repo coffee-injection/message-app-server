@@ -55,7 +55,12 @@ public enum ErrorCode {
     GOOGLE_USER_INFO_FAILED(500, "구글 사용자 정보 조회 중 오류가 발생했습니다."),
     MEMBER_ALREADY_WITHDRAWN(400, "이미 탈퇴한 회원입니다."),
     INTERNAL_SERVER_ERROR(500,"서버 에러"),
-    JSON_PARSE_ERROR(500,"json 파싱 에러 입니다.");
+    JSON_PARSE_ERROR(500,"json 파싱 에러 입니다."),
+
+    /* FCM 관련 에러 */
+    FCM_SEND_FAILED(500, "FCM 메시지 발송에 실패했습니다."),
+    FCM_INITIALIZATION_FAILED(500, "FCM 초기화에 실패했습니다."),
+    DEVICE_TOKEN_NOT_FOUND(400, "등록된 디바이스 토큰을 찾을 수 없습니다.");
 
     private final int status;
     private final String reason;

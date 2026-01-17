@@ -1,5 +1,6 @@
 package com.messageapp.domain.letter.service;
 
+import com.messageapp.domain.fcm.service.FcmService;
 import com.messageapp.domain.letter.dto.LetterIdResponse;
 import com.messageapp.domain.letter.dto.LetterResponse;
 import com.messageapp.domain.letter.entity.Letter;
@@ -28,6 +29,7 @@ public class LetterServiceImpl implements LetterService {
 
     private final LetterRepository letterRepository;
     private final MemberRepository memberRepository;
+    private final FcmService fcmService;
 
     @Override
     public List<LetterIdResponse> getReceivedLetters(Long memberId) {
@@ -71,6 +73,9 @@ public class LetterServiceImpl implements LetterService {
 
         log.info("편지 발송 완료: senderId = {}, receiverId = {}, letterId = {}",
                 senderId, receiver.getId(), savedLetter.getId());
+
+        // 6. FCM 푸시 알림 발송 (비동기)
+        fcmService.sendLetterArrivalNotification(receiver.getId(), sender.getName());
 
         return LetterResponse.from(savedLetter);
     }
