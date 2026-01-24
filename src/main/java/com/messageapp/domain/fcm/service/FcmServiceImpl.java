@@ -29,7 +29,7 @@ public class FcmServiceImpl implements FcmService {
     @Transactional
     public void registerToken(Long memberId, DeviceTokenRequest request) {
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> MemberNotFoundException.EXCEPTION);
+                .orElseThrow(MemberNotFoundException::new);
 
         deviceTokenRepository.findByFcmToken(request.getFcmToken())
                 .ifPresentOrElse(

@@ -37,7 +37,7 @@ public class KakaoUnlinkStrategy implements OauthUnlinkStrategy {
             log.info("카카오 연결 끊기 성공: oauthId = {}", oauthId);
         } catch (Exception e) {
             log.error("카카오 연결 끊기 실패: oauthId = {}, error = {}", oauthId, e.getMessage());
-            throw KakaoUnlinkFailedException.EXCEPTION;
+            throw new KakaoUnlinkFailedException();
         }
     }
 }

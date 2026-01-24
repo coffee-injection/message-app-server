@@ -5,9 +5,15 @@ import com.messageapp.global.error.ErrorCode;
 
 public class LetterNotFoundException extends AppException {
 
-    public static final AppException EXCEPTION = new LetterNotFoundException();
-
-    private LetterNotFoundException() {
+    public LetterNotFoundException() {
         super(ErrorCode.LETTER_NOT_FOUND);
+    }
+
+    public LetterNotFoundException(String additionalMessage) {
+        super(ErrorCode.LETTER_NOT_FOUND, additionalMessage);
+    }
+
+    public static LetterNotFoundException withId(Long id) {
+        return new LetterNotFoundException("letterId: " + id);
     }
 }

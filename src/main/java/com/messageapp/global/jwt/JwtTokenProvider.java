@@ -13,15 +13,43 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
+/**
+ * JWT 토큰 생성 및 검증 제공자
+ *
+ * <p>JWT(JSON Web Token) 생성, 파싱, 검증 기능을 제공합니다.</p>
+ *
+ * <h3>토큰 종류:</h3>
+ * <ul>
+ *   <li><b>access</b>: 회원가입이 완료된 정규 회원용 토큰</li>
+ *   <li><b>temp</b>: 소셜 로그인 후 회원가입 전 임시 토큰</li>
+ * </ul>
+ *
+ * <h3>토큰 구조:</h3>
+ * <ul>
+ *   <li>subject: 회원 ID (access) 또는 temp_{oauthId} (temp)</li>
+ *   <li>email: 회원 이메일</li>
+ *   <li>type: 토큰 종류 (access, temp)</li>
+ *   <li>oauthId, oauthProvider: OAuth 정보 (temp 토큰에만 포함)</li>
+ * </ul>
+ *
+ * @author MessageApp Team
+ * @since 1.0
+ * @see JwtProperties
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtTokenProvider {
 
+    /** JWT 설정 프로퍼티 */
     private final JwtProperties jwtProperties;
 
     /**
-     * Access Token 생성 (회원가입 완료된 사용자용)
+     * Access Token을 생성합니다 (정규 회원용).
+     *
+     * @param memberId 회원 ID
+     * @param email 회원 이메일
+     * @return 생성된 JWT Access Token
      */
     public String generateAccessToken(Long memberId, String email) {
         Date now = new Date();
@@ -38,7 +66,15 @@ public class JwtTokenProvider {
     }
 
     /**
-     * 임시 Access Token 생성 (소셜 로그인 직후, 닉네임 입력 전)
+     * 임시 Access Token을 생성합니다 (회원가입 전 신규 사용자용).
+     *
+     * <p>소셜 로그인 직후, 닉네임 등 추가 정보 입력 전에 발급됩니다.
+     * 이 토큰으로 회원가입 완료 API를 호출할 수 있습니다.</p>
+     *
+     * @param oauthId OAuth 제공자의 고유 사용자 ID
+     * @param email 가상 이메일
+     * @param provider OAuth 제공자 (KAKAO, GOOGLE)
+     * @return 생성된 임시 JWT Token
      */
     public String generateTempAccessToken(String oauthId, String email, OauthProvider provider) {
         Date now = new Date();
@@ -57,7 +93,10 @@ public class JwtTokenProvider {
     }
 
     /**
-     * JWT 토큰에서 사용자 ID 추출
+     * JWT 토큰에서 회원 ID를 추출합니다.
+     *
+     * @param token JWT 토큰
+     * @return 회원 ID
      */
     public Long getMemberIdFromToken(String token) {
         Claims claims = parseClaims(token);
@@ -65,7 +104,10 @@ public class JwtTokenProvider {
     }
 
     /**
-     * JWT 토큰에서 이메일 추출
+     * JWT 토큰에서 이메일을 추출합니다.
+     *
+     * @param token JWT 토큰
+     * @return 이메일
      */
     public String getEmailFromToken(String token) {
         Claims claims = parseClaims(token);
@@ -73,34 +115,44 @@ public class JwtTokenProvider {
     }
 
     /**
-     * JWT 토큰에서 kakaoId 추출 (하위 호환성 유지)
-     * @deprecated Use {@link #getOauthIdFromToken(String)} instead
+     * JWT 토큰에서 카카오 ID를 추출합니다.
+     *
+     * @param token JWT 토큰
+     * @return 카카오 ID
+     * @deprecated {@link #getOauthIdFromToken(String)} 사용 권장
      */
     @Deprecated
     public String getKakaoIdFromToken(String token) {
         Claims claims = parseClaims(token);
-        // 먼저 oauthId 클레임 확인, 없으면 기존 kakaoId 클레임 확인 (하위 호환성)
         String oauthId = claims.get("oauthId", String.class);
         return oauthId != null ? oauthId : claims.get("kakaoId", String.class);
     }
 
     /**
-     * JWT 토큰에서 oauthId 추출
+     * JWT 토큰에서 OAuth ID를 추출합니다.
+     *
+     * <p>하위 호환성을 위해 oauthId 클레임이 없으면 kakaoId 클레임을 확인합니다.</p>
+     *
+     * @param token JWT 토큰
+     * @return OAuth ID
      */
     public String getOauthIdFromToken(String token) {
         Claims claims = parseClaims(token);
-        // 먼저 oauthId 클레임 확인, 없으면 기존 kakaoId 클레임 확인 (하위 호환성)
         String oauthId = claims.get("oauthId", String.class);
         return oauthId != null ? oauthId : claims.get("kakaoId", String.class);
     }
 
     /**
-     * JWT 토큰에서 oauthProvider 추출
+     * JWT 토큰에서 OAuth 제공자를 추출합니다.
+     *
+     * <p>하위 호환성을 위해 oauthProvider 클레임이 없으면 KAKAO로 간주합니다.</p>
+     *
+     * @param token JWT 토큰
+     * @return OAuth 제공자
      */
     public OauthProvider getOauthProviderFromToken(String token) {
         Claims claims = parseClaims(token);
         String providerValue = claims.get("oauthProvider", String.class);
-        // 하위 호환성: oauthProvider 클레임이 없으면 KAKAO로 간주
         if (providerValue == null) {
             return OauthProvider.KAKAO;
         }
@@ -108,7 +160,10 @@ public class JwtTokenProvider {
     }
 
     /**
-     * JWT 토큰 타입 확인 (temp인지 access인지)
+     * JWT 토큰의 타입을 확인합니다.
+     *
+     * @param token JWT 토큰
+     * @return 토큰 타입 ("access" 또는 "temp")
      */
     public String getTokenType(String token) {
         Claims claims = parseClaims(token);
@@ -116,7 +171,10 @@ public class JwtTokenProvider {
     }
 
     /**
-     * JWT 토큰 유효성 검증
+     * JWT 토큰의 유효성을 검증합니다.
+     *
+     * @param token JWT 토큰
+     * @return 유효하면 true, 아니면 false
      */
     public boolean validateToken(String token) {
         try {
@@ -129,7 +187,10 @@ public class JwtTokenProvider {
     }
 
     /**
-     * JWT 토큰 파싱
+     * JWT 토큰을 파싱하여 Claims를 추출합니다.
+     *
+     * @param token JWT 토큰
+     * @return 파싱된 Claims
      */
     private Claims parseClaims(String token) {
         return Jwts.parser()
@@ -140,7 +201,9 @@ public class JwtTokenProvider {
     }
 
     /**
-     * 서명 키 생성
+     * HMAC-SHA 서명에 사용할 SecretKey를 생성합니다.
+     *
+     * @return SecretKey
      */
     private SecretKey getSigningKey() {
         byte[] keyBytes = jwtProperties.getSecretKey().getBytes(StandardCharsets.UTF_8);

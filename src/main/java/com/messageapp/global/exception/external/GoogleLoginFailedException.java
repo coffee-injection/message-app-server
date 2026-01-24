@@ -5,9 +5,11 @@ import com.messageapp.global.error.ErrorCode;
 
 public class GoogleLoginFailedException extends AppException {
 
-    public static final AppException EXCEPTION = new GoogleLoginFailedException();
-
-    private GoogleLoginFailedException() {
+    public GoogleLoginFailedException() {
         super(ErrorCode.GOOGLE_LOGIN_FAILED);
+    }
+
+    public GoogleLoginFailedException(String additionalMessage) {
+        super(ErrorCode.GOOGLE_LOGIN_FAILED, additionalMessage);
     }
 }

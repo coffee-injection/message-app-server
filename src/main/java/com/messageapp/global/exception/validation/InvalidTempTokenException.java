@@ -5,9 +5,11 @@ import com.messageapp.global.error.ErrorCode;
 
 public class InvalidTempTokenException extends AppException {
 
-    public static final AppException EXCEPTION = new InvalidTempTokenException();
-
-    private InvalidTempTokenException() {
+    public InvalidTempTokenException() {
         super(ErrorCode.INVALID_TEMP_TOKEN);
+    }
+
+    public InvalidTempTokenException(String additionalMessage) {
+        super(ErrorCode.INVALID_TEMP_TOKEN, additionalMessage);
     }
 }

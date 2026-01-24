@@ -5,9 +5,11 @@ import com.messageapp.global.error.ErrorCode;
 
 public class BookmarkAccessDeniedException extends AppException {
 
-    public static final AppException EXCEPTION = new BookmarkAccessDeniedException();
-
-    private BookmarkAccessDeniedException() {
+    public BookmarkAccessDeniedException() {
         super(ErrorCode.BOOKMARK_ACCESS_DENIED);
+    }
+
+    public BookmarkAccessDeniedException(String additionalMessage) {
+        super(ErrorCode.BOOKMARK_ACCESS_DENIED, additionalMessage);
     }
 }

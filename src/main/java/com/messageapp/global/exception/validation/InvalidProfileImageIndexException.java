@@ -5,9 +5,11 @@ import com.messageapp.global.error.ErrorCode;
 
 public class InvalidProfileImageIndexException extends AppException {
 
-    public static final AppException EXCEPTION = new InvalidProfileImageIndexException();
-
-    private InvalidProfileImageIndexException() {
+    public InvalidProfileImageIndexException() {
         super(ErrorCode.INVALID_PROFILE_IMAGE_INDEX);
+    }
+
+    public InvalidProfileImageIndexException(String additionalMessage) {
+        super(ErrorCode.INVALID_PROFILE_IMAGE_INDEX, additionalMessage);
     }
 }

@@ -30,15 +30,15 @@ public class ReportServiceImpl implements ReportService {
     public ReportResponse reportLetter(Long letterId, Long reporterId, String reason) {
         // 1. 편지 조회
         Letter letter = letterRepository.findById(letterId)
-                .orElseThrow(() -> LetterNotFoundException.EXCEPTION);
+                .orElseThrow(LetterNotFoundException::new);
 
         // 2. 신고자 조회
         Member reporter = memberRepository.findById(reporterId)
-                .orElseThrow(() -> ReporterNotFoundException.EXCEPTION);
+                .orElseThrow(ReporterNotFoundException::new);
 
         // 3. 중복 신고 체크
         if (reportRepository.existsByLetterIdAndReporterId(letterId, reporterId)) {
-            throw DuplicateReportException.EXCEPTION;
+            throw new DuplicateReportException();
         }
 
         // 4. 신고 생성 및 저장

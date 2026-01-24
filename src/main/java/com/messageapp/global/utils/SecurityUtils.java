@@ -19,19 +19,19 @@ public class SecurityUtils {
         log.info("Authentication={}",authentication.getName());
 
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw UnauthorizedException.EXCEPTION;
+            throw new UnauthorizedException();
         }
 
         String principal = authentication.getName();
 
         if ("anonymousUser".equals(principal)) {
-            throw UnauthorizedException.EXCEPTION;
+            throw new UnauthorizedException();
         }
 
         try {
             return Long.valueOf(principal);
         } catch (NumberFormatException e) {
-            throw UnauthorizedException.EXCEPTION;
+            throw new UnauthorizedException();
         }
 
     }

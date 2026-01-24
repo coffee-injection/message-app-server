@@ -34,20 +34,20 @@ public class BookmarkServiceImpl implements BookmarkService {
     public void saveLetter(Long memberId, Long letterId) {
         // 1. 편지 조회
         Letter letter = letterRepository.findById(letterId)
-                .orElseThrow(() -> LetterNotFoundException.EXCEPTION);
+                .orElseThrow(LetterNotFoundException::new);
 
         // 2. 회원 조회
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> MemberNotFoundException.EXCEPTION);
+                .orElseThrow(MemberNotFoundException::new);
 
         // 3. 수신자 확인 (본인에게 수신된 편지만 북마크 가능)
         if (letter.getReceiver() == null || !letter.getReceiver().getId().equals(memberId)) {
-            throw BookmarkAccessDeniedException.EXCEPTION;
+            throw new BookmarkAccessDeniedException();
         }
 
         // 4. 중복 북마크 체크
         if (bookmarkRepository.existsByMemberIdAndLetterId(memberId, letterId)) {
-            throw DuplicateBookmarkException.EXCEPTION;
+            throw new DuplicateBookmarkException();
         }
 
         // 5. 북마크 생성 및 저장
@@ -78,7 +78,7 @@ public class BookmarkServiceImpl implements BookmarkService {
     public void deleteLetter(Long memberId, Long letterId) {
         // 1. 북마크 존재 확인
         if (!bookmarkRepository.existsByMemberIdAndLetterId(memberId, letterId)) {
-            throw BookmarkNotFoundException.EXCEPTION;
+            throw new BookmarkNotFoundException();
         }
 
         // 2. 북마크 삭제

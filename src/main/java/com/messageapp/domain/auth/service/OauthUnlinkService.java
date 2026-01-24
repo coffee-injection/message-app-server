@@ -31,7 +31,7 @@ public class OauthUnlinkService {
                 .findFirst()
                 .orElseThrow(() -> {
                     log.error("지원하지 않는 OAuth 제공자: {}", provider);
-                    return UnsupportedOauthProviderException.EXCEPTION;
+                    return new UnsupportedOauthProviderException();
                 });
 
         strategy.unlink(oauthId);

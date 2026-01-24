@@ -5,9 +5,11 @@ import com.messageapp.global.error.ErrorCode;
 
 public class NoAvailableReceiverException extends AppException {
 
-    public static final AppException EXCEPTION = new NoAvailableReceiverException();
-
-    private NoAvailableReceiverException() {
+    public NoAvailableReceiverException() {
         super(ErrorCode.NO_AVAILABLE_RECEIVER);
+    }
+
+    public NoAvailableReceiverException(String additionalMessage) {
+        super(ErrorCode.NO_AVAILABLE_RECEIVER, additionalMessage);
     }
 }

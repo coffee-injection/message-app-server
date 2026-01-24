@@ -5,10 +5,11 @@ import com.messageapp.global.error.ErrorCode;
 
 public class UnauthorizedException extends AppException {
 
-    public static final AppException EXCEPTION = new UnauthorizedException();
-
-    private UnauthorizedException() {
+    public UnauthorizedException() {
         super(ErrorCode.NECESSARY_LOGIN);
     }
 
+    public UnauthorizedException(String additionalMessage) {
+        super(ErrorCode.NECESSARY_LOGIN, additionalMessage);
+    }
 }

@@ -5,9 +5,11 @@ import com.messageapp.global.error.ErrorCode;
 
 public class LetterAccessDeniedException extends AppException {
 
-    public static final AppException EXCEPTION = new LetterAccessDeniedException();
-
-    private LetterAccessDeniedException() {
+    public LetterAccessDeniedException() {
         super(ErrorCode.LETTER_ACCESS_DENIED);
+    }
+
+    public LetterAccessDeniedException(String additionalMessage) {
+        super(ErrorCode.LETTER_ACCESS_DENIED, additionalMessage);
     }
 }

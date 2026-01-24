@@ -5,9 +5,11 @@ import com.messageapp.global.error.ErrorCode;
 
 public class UnsupportedOauthProviderException extends AppException {
 
-    public static final AppException EXCEPTION = new UnsupportedOauthProviderException();
-
-    private UnsupportedOauthProviderException() {
+    public UnsupportedOauthProviderException() {
         super(ErrorCode.UNSUPPORTED_OAUTH_PROVIDER);
+    }
+
+    public UnsupportedOauthProviderException(String additionalMessage) {
+        super(ErrorCode.UNSUPPORTED_OAUTH_PROVIDER, additionalMessage);
     }
 }

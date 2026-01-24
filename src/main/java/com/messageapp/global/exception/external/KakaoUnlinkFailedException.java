@@ -5,9 +5,11 @@ import com.messageapp.global.error.ErrorCode;
 
 public class KakaoUnlinkFailedException extends AppException {
 
-    public static final AppException EXCEPTION = new KakaoUnlinkFailedException();
-
-    private KakaoUnlinkFailedException() {
+    public KakaoUnlinkFailedException() {
         super(ErrorCode.KAKAO_UNLINK_FAILED);
+    }
+
+    public KakaoUnlinkFailedException(String additionalMessage) {
+        super(ErrorCode.KAKAO_UNLINK_FAILED, additionalMessage);
     }
 }

@@ -5,9 +5,11 @@ import com.messageapp.global.error.ErrorCode;
 
 public class MemberAlreadyWithdrawnException extends AppException {
 
-    public static final AppException EXCEPTION = new MemberAlreadyWithdrawnException();
-
-    private MemberAlreadyWithdrawnException() {
+    public MemberAlreadyWithdrawnException() {
         super(ErrorCode.MEMBER_ALREADY_WITHDRAWN);
+    }
+
+    public MemberAlreadyWithdrawnException(String additionalMessage) {
+        super(ErrorCode.MEMBER_ALREADY_WITHDRAWN, additionalMessage);
     }
 }

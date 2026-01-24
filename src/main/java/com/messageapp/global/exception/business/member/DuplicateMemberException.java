@@ -5,9 +5,11 @@ import com.messageapp.global.error.ErrorCode;
 
 public class DuplicateMemberException extends AppException {
 
-    public static final AppException EXCEPTION = new DuplicateMemberException();
-
-    private DuplicateMemberException() {
+    public DuplicateMemberException() {
         super(ErrorCode.DUPLICATE_MEMBER);
+    }
+
+    public DuplicateMemberException(String additionalMessage) {
+        super(ErrorCode.DUPLICATE_MEMBER, additionalMessage);
     }
 }

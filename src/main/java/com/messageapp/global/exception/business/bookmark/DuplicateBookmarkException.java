@@ -5,9 +5,11 @@ import com.messageapp.global.error.ErrorCode;
 
 public class DuplicateBookmarkException extends AppException {
 
-    public static final AppException EXCEPTION = new DuplicateBookmarkException();
-
-    private DuplicateBookmarkException() {
+    public DuplicateBookmarkException() {
         super(ErrorCode.DUPLICATE_BOOKMARK);
+    }
+
+    public DuplicateBookmarkException(String additionalMessage) {
+        super(ErrorCode.DUPLICATE_BOOKMARK, additionalMessage);
     }
 }

@@ -5,9 +5,11 @@ import com.messageapp.global.error.ErrorCode;
 
 public class InvalidIslandNameException extends AppException {
 
-    public static final AppException EXCEPTION = new InvalidIslandNameException();
-
-    private InvalidIslandNameException() {
+    public InvalidIslandNameException() {
         super(ErrorCode.INVALID_ISLAND_NAME);
+    }
+
+    public InvalidIslandNameException(String additionalMessage) {
+        super(ErrorCode.INVALID_ISLAND_NAME, additionalMessage);
     }
 }

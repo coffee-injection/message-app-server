@@ -1,151 +1,144 @@
 package com.messageapp.domain.auth.service;
 
 import com.messageapp.api.auth.OauthProvider;
-import com.messageapp.domain.auth.client.GoogleApiClient;
-import com.messageapp.domain.auth.client.GoogleOAuthClient;
-import com.messageapp.domain.auth.client.GoogleUserResponse;
-import com.messageapp.domain.auth.client.KakaoApiClient;
-import com.messageapp.domain.auth.client.KakaoOAuthClient;
-import com.messageapp.domain.auth.client.KakaoUserResponse;
-import com.messageapp.domain.auth.dto.GoogleTokenResponse;
 import com.messageapp.domain.auth.dto.JwtTokenResponse;
-import com.messageapp.domain.auth.dto.KakaoTokenResponse;
+import com.messageapp.domain.auth.dto.OAuthUserInfo;
+import com.messageapp.domain.auth.strategy.OAuthLoginStrategy;
 import com.messageapp.domain.member.entity.Member;
 import com.messageapp.domain.member.repository.MemberRepository;
 import com.messageapp.global.config.JwtProperties;
+import com.messageapp.global.constant.OAuthConstants;
 import com.messageapp.global.exception.auth.InvalidAccessTokenException;
+import com.messageapp.global.exception.auth.UnsupportedOauthProviderException;
 import com.messageapp.global.exception.business.member.DuplicateMemberException;
 import com.messageapp.global.exception.business.member.MemberAlreadyWithdrawnException;
 import com.messageapp.global.exception.business.member.MemberNotFoundException;
-import com.messageapp.global.exception.external.GoogleLoginFailedException;
-import com.messageapp.global.exception.external.GoogleUserInfoFailedException;
-import com.messageapp.global.exception.external.KakaoLoginFailedException;
-import com.messageapp.global.exception.external.KakaoUserInfoFailedException;
 import com.messageapp.global.exception.validation.InvalidTempTokenException;
 import com.messageapp.global.jwt.JwtTokenProvider;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
+import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 
+/**
+ * 인증 서비스 구현체
+ *
+ * <p>OAuth 소셜 로그인, 회원가입, 회원 탈퇴 기능을 제공합니다.</p>
+ *
+ * <h3>주요 기능:</h3>
+ * <ul>
+ *   <li>카카오/구글 소셜 로그인 처리</li>
+ *   <li>신규 회원 가입 완료</li>
+ *   <li>회원 탈퇴 및 소셜 연결 해제</li>
+ * </ul>
+ *
+ * <h3>Strategy 패턴 적용:</h3>
+ * <p>OAuth 제공자별 인증 로직을 {@link OAuthLoginStrategy} 구현체로 분리하여
+ * 코드 중복을 제거하고 새로운 OAuth 제공자 추가를 용이하게 합니다.</p>
+ *
+ * @author MessageApp Team
+ * @since 1.0
+ * @see OAuthLoginStrategy
+ * @see AuthService
+ */
 @Slf4j
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 @Service
 public class AuthServiceImpl implements AuthService {
 
-    private final KakaoOAuthClient kakaoOAuthClient;
-    private final KakaoApiClient kakaoApiClient;
-    private final GoogleOAuthClient googleOAuthClient;
-    private final GoogleApiClient googleApiClient;
+    /** 회원 저장소 */
     private final MemberRepository memberRepository;
+
+    /** JWT 토큰 생성/검증 제공자 */
     private final JwtTokenProvider jwtTokenProvider;
+
+    /** JWT 설정 프로퍼티 */
     private final JwtProperties jwtProperties;
+
+    /** OAuth 연결 해제 서비스 */
     private final OauthUnlinkService oauthUnlinkService;
 
-    @Value("${oauth.kakao.client-id}")
-    private String kakaoClientId;
+    /** OAuth 로그인 전략 목록 (Spring에서 자동 주입) */
+    private final List<OAuthLoginStrategy> loginStrategies;
 
-    @Value("${oauth.kakao.client-secret}")
-    private String kakaoClientSecret;
+    /** OAuth 제공자별 전략 매핑 */
+    private Map<OauthProvider, OAuthLoginStrategy> strategyMap;
 
-    @Value("${oauth.kakao.redirect-uri}")
-    private String kakaoRedirectUri;
+    /**
+     * OAuth 로그인 전략 맵을 초기화합니다.
+     *
+     * <p>애플리케이션 시작 시 주입된 모든 {@link OAuthLoginStrategy} 구현체를
+     * {@link OauthProvider}를 키로 하는 EnumMap에 등록합니다.</p>
+     */
+    @PostConstruct
+    public void initStrategyMap() {
+        strategyMap = new EnumMap<>(OauthProvider.class);
+        for (OAuthLoginStrategy strategy : loginStrategies) {
+            strategyMap.put(strategy.getProvider(), strategy);
+        }
+    }
 
-    @Value("${oauth.google.client-id}")
-    private String googleClientId;
-
-    @Value("${oauth.google.client-secret}")
-    private String googleClientSecret;
-
-    @Value("${oauth.google.redirect-uri}")
-    private String googleRedirectUri;
-
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public JwtTokenResponse kakaoLogin(String authorizationCode) {
-
-        // 1. 인가 코드로 카카오 Access Token 을 발급받는다.
-        KakaoTokenResponse kakaoToken = getKakaoAccessToken(authorizationCode);
-
-        // 2. 카카오 Access Token 으로 사용자 정보를 조회한다.
-        KakaoUserResponse kakaoUser = getKakaoUserInfo(kakaoToken.getAccessToken());
-
-        // 3. 가상 이메일을 생성한다.
-        String virtualEmail = kakaoUser.generateVirtualEmail();
-        String kakaoId = String.valueOf(kakaoUser.getId());
-
-        // 4. 기존 회원인지 확인
-        Member existingMember = memberRepository.findByEmail(virtualEmail).orElse(null);
-
-        if (existingMember != null) {
-            // 기존 회원 - 일반 JWT 발급
-            String accessToken = jwtTokenProvider.generateAccessToken(existingMember.getId(), existingMember.getEmail());
-
-            log.info("기존 회원 로그인 성공: memberId = {}, email = {}", existingMember.getId(), virtualEmail);
-
-            return JwtTokenResponse.builder()
-                    .accessToken(accessToken)
-                    .tokenType("Bearer")
-                    .expiresIn(jwtProperties.getAccessTokenExpiration() / 1000)
-                    .memberId(existingMember.getId())
-                    .email(existingMember.getEmail())
-                    .isNewMember(false)
-                    .nickname(existingMember.getName())
-                    .islandName(existingMember.getIslandName())
-                    .profileImageIndex(existingMember.getProfileImageIndex())
-                    .build();
-        } else {
-            // 신규 회원 - 임시 JWT 발급 (DB 저장 X)
-            String tempAccessToken = jwtTokenProvider.generateTempAccessToken(kakaoId, virtualEmail, OauthProvider.KAKAO);
-
-            log.info("신규 회원 카카오 인증 성공: kakaoId = {}, email = {}", kakaoId, virtualEmail);
-
-            return JwtTokenResponse.builder()
-                    .accessToken(tempAccessToken)
-                    .tokenType("Bearer")
-                    .expiresIn(jwtProperties.getAccessTokenExpiration() / 1000)
-                    .memberId(null) // 아직 회원가입 전이므로 null
-                    .email(virtualEmail)
-                    .isNewMember(true)
-                    .build();
-        }
+        return socialLogin(authorizationCode, OauthProvider.KAKAO);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public JwtTokenResponse googleLogin(String authorizationCode) {
+        return socialLogin(authorizationCode, OauthProvider.GOOGLE);
+    }
 
-        authorizationCode = URLDecoder.decode(authorizationCode, StandardCharsets.UTF_8);
+    /**
+     * 소셜 로그인 공통 처리 메서드
+     *
+     * <p>Strategy 패턴을 활용하여 OAuth 제공자별 인증을 처리합니다.</p>
+     *
+     * <h4>처리 흐름:</h4>
+     * <ol>
+     *   <li>제공자에 맞는 전략 선택</li>
+     *   <li>인가 코드로 사용자 정보 조회</li>
+     *   <li>기존 회원이면 Access Token 발급</li>
+     *   <li>신규 회원이면 임시 토큰 발급 (회원가입 필요)</li>
+     * </ol>
+     *
+     * @param authorizationCode OAuth 인가 코드
+     * @param provider OAuth 제공자 (KAKAO, GOOGLE)
+     * @return JWT 토큰 응답 (기존 회원: 정식 토큰, 신규 회원: 임시 토큰)
+     * @throws UnsupportedOauthProviderException 지원하지 않는 OAuth 제공자인 경우
+     */
+    private JwtTokenResponse socialLogin(String authorizationCode, OauthProvider provider) {
+        OAuthLoginStrategy strategy = strategyMap.get(provider);
+        if (strategy == null) {
+            throw new UnsupportedOauthProviderException();
+        }
 
-        // 1. 인가 코드로 구글 Access Token 을 발급받는다.
-        GoogleTokenResponse googleToken = getGoogleAccessToken(authorizationCode);
+        OAuthUserInfo userInfo = strategy.authenticate(authorizationCode);
+        String virtualEmail = userInfo.getEmail();
+        String oauthId = userInfo.getOauthId();
 
-        // 2. 구글 Access Token 으로 사용자 정보를 조회한다.
-        GoogleUserResponse googleUser = getGoogleUserInfo(googleToken.getAccessToken());
-
-        // 3. 가상 이메일을 생성한다.
-        String virtualEmail = googleUser.generateVirtualEmail();
-        String googleId = googleUser.getId();
-
-        // 4. 기존 회원인지 확인
         Member existingMember = memberRepository.findByEmail(virtualEmail).orElse(null);
 
         if (existingMember != null) {
-            // 기존 회원 - 일반 JWT 발급
             String accessToken = jwtTokenProvider.generateAccessToken(existingMember.getId(), existingMember.getEmail());
-
             log.info("기존 회원 로그인 성공: memberId = {}, email = {}", existingMember.getId(), virtualEmail);
 
             return JwtTokenResponse.builder()
                     .accessToken(accessToken)
-                    .tokenType("Bearer")
+                    .tokenType(OAuthConstants.TOKEN_TYPE_BEARER)
                     .expiresIn(jwtProperties.getAccessTokenExpiration() / 1000)
                     .memberId(existingMember.getId())
                     .email(existingMember.getEmail())
@@ -155,16 +148,14 @@ public class AuthServiceImpl implements AuthService {
                     .profileImageIndex(existingMember.getProfileImageIndex())
                     .build();
         } else {
-            // 신규 회원 - 임시 JWT 발급 (DB 저장 X)
-            String tempAccessToken = jwtTokenProvider.generateTempAccessToken(googleId, virtualEmail, OauthProvider.GOOGLE);
-
-            log.info("신규 회원 구글 인증 성공: googleId = {}, email = {}", googleId, virtualEmail);
+            String tempAccessToken = jwtTokenProvider.generateTempAccessToken(oauthId, virtualEmail, provider);
+            log.info("신규 회원 {} 인증 성공: oauthId = {}, email = {}", provider.getValue(), oauthId, virtualEmail);
 
             return JwtTokenResponse.builder()
                     .accessToken(tempAccessToken)
-                    .tokenType("Bearer")
+                    .tokenType(OAuthConstants.TOKEN_TYPE_BEARER)
                     .expiresIn(jwtProperties.getAccessTokenExpiration() / 1000)
-                    .memberId(null) // 아직 회원가입 전이므로 null
+                    .memberId(null)
                     .email(virtualEmail)
                     .isNewMember(true)
                     .build();
@@ -172,66 +163,37 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * 인가 코드로 카카오 Access Token 발급
+     * {@inheritDoc}
+     *
+     * <h4>처리 흐름:</h4>
+     * <ol>
+     *   <li>임시 토큰 유효성 검증</li>
+     *   <li>토큰에서 OAuth 정보 추출 (oauthId, provider, email)</li>
+     *   <li>이메일 중복 확인</li>
+     *   <li>신규 회원 생성 및 저장</li>
+     *   <li>정식 Access Token 발급</li>
+     * </ol>
      */
-    private KakaoTokenResponse getKakaoAccessToken(String authorizationCode) {
-        try {
-            return kakaoOAuthClient.getAccessToken(
-                    "authorization_code",
-                    kakaoClientId,
-                    kakaoClientSecret,
-                    kakaoRedirectUri,
-                    authorizationCode
-            );
-        } catch (Exception e) {
-            log.error("카카오 Access Token 발급 실패: {}", e.getMessage());
-            throw KakaoLoginFailedException.EXCEPTION;
-        }
-    }
-
-    /**
-     * 인가 코드로 구글 Access Token 발급
-     */
-    private GoogleTokenResponse getGoogleAccessToken(String authorizationCode) {
-        try {
-            Map<String, String> params = new HashMap<>();
-            params.put("grant_type", "authorization_code");
-            params.put("client_id", googleClientId);
-            params.put("client_secret", googleClientSecret);
-            params.put("redirect_uri", googleRedirectUri);
-            params.put("code", authorizationCode);
-
-            return googleOAuthClient.getAccessToken(params);
-        } catch (Exception e) {
-            log.error("구글 Access Token 발급 실패: {}", e.getMessage());
-            throw GoogleLoginFailedException.EXCEPTION;
-        }
-    }
-
     @Override
     @Transactional
     public JwtTokenResponse completeSignup(String token, String nickname, String islandName, Integer profileImageIndex) {
-        // 1. JWT 검증 및 타입 확인
         if (!jwtTokenProvider.validateToken(token)) {
-            throw InvalidAccessTokenException.EXCEPTION;
+            throw new InvalidAccessTokenException();
         }
 
         String tokenType = jwtTokenProvider.getTokenType(token);
-        if (!"temp".equals(tokenType)) {
-            throw InvalidTempTokenException.EXCEPTION;
+        if (!OAuthConstants.TOKEN_TYPE_TEMP.equals(tokenType)) {
+            throw new InvalidTempTokenException();
         }
 
-        // 2. JWT에서 정보 추출
         String oauthId = jwtTokenProvider.getOauthIdFromToken(token);
         OauthProvider oauthProvider = jwtTokenProvider.getOauthProviderFromToken(token);
         String email = jwtTokenProvider.getEmailFromToken(token);
 
-        // 3. 중복 가입 체크
         if (memberRepository.findByEmail(email).isPresent()) {
-            throw DuplicateMemberException.EXCEPTION;
+            throw new DuplicateMemberException();
         }
 
-        // 4. 회원 생성 및 저장
         Member newMember = Member.builder()
                 .email(email)
                 .name(nickname)
@@ -243,15 +205,13 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         Member savedMember = memberRepository.save(newMember);
-
-        // 5. 정식 JWT 발급
         String accessToken = jwtTokenProvider.generateAccessToken(savedMember.getId(), savedMember.getEmail());
 
         log.info("회원가입 완료: memberId = {}, email = {}, nickname = {}", savedMember.getId(), email, nickname);
 
         return JwtTokenResponse.builder()
                 .accessToken(accessToken)
-                .tokenType("Bearer")
+                .tokenType(OAuthConstants.TOKEN_TYPE_BEARER)
                 .expiresIn(jwtProperties.getAccessTokenExpiration() / 1000)
                 .memberId(savedMember.getId())
                 .email(savedMember.getEmail())
@@ -263,42 +223,26 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * 카카오 Access Token으로 사용자 정보 조회
+     * {@inheritDoc}
+     *
+     * <h4>처리 흐름:</h4>
+     * <ol>
+     *   <li>회원 조회 및 존재 여부 확인</li>
+     *   <li>이미 탈퇴한 회원인지 확인</li>
+     *   <li>OAuth 연결 해제 (카카오/구글 연결 끊기)</li>
+     *   <li>회원 상태를 INACTIVE로 변경 (소프트 삭제)</li>
+     * </ol>
      */
-    private KakaoUserResponse getKakaoUserInfo(String accessToken) {
-        try {
-            return kakaoApiClient.getUserInfo("Bearer " + accessToken);
-        } catch (Exception e) {
-            log.error("카카오 사용자 정보 조회 실패: {}", e.getMessage());
-            throw KakaoUserInfoFailedException.EXCEPTION;
-        }
-    }
-
-    /**
-     * 구글 Access Token으로 사용자 정보 조회
-     */
-    private GoogleUserResponse getGoogleUserInfo(String accessToken) {
-        try {
-            return googleApiClient.getUserInfo("Bearer " + accessToken);
-        } catch (Exception e) {
-            log.error("구글 사용자 정보 조회 실패: {}", e.getMessage());
-            throw GoogleUserInfoFailedException.EXCEPTION;
-        }
-    }
-
     @Override
     @Transactional
     public void withdrawMember(Long memberId) {
-        // 1. 회원 조회
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> MemberNotFoundException.EXCEPTION);
+                .orElseThrow(MemberNotFoundException::new);
 
-        // 2. 이미 탈퇴한 회원인지 확인
         if (!member.isActive()) {
-            throw MemberAlreadyWithdrawnException.EXCEPTION;
+            throw new MemberAlreadyWithdrawnException();
         }
 
-        // 3. 소셜 로그인 연결 해제 (Strategy 패턴 적용)
         String oauthId = member.getOauthId();
         if (oauthId != null && !oauthId.isEmpty()) {
             OauthProvider provider = OauthProvider.fromString(member.getSocialInfo());
@@ -307,9 +251,7 @@ public class AuthServiceImpl implements AuthService {
                     memberId, provider.getValue(), oauthId);
         }
 
-        // 4. 회원 소프트 삭제 (status를 INACTIVE로 변경)
         member.deactivate();
-
         log.info("회원 탈퇴 완료: memberId = {}, email = {}", memberId, member.getEmail());
     }
 }

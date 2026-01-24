@@ -8,6 +8,7 @@ import com.messageapp.domain.auth.dto.KakaoLoginUrlResponse;
 import com.messageapp.domain.auth.dto.SignupCompleteRequest;
 import com.messageapp.domain.auth.service.AuthService;
 import com.messageapp.global.auth.LoginMember;
+import com.messageapp.global.config.OAuthProperties;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -19,9 +20,27 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 인증 관련 REST API 컨트롤러
+ *
+ * <p>OAuth 소셜 로그인, 회원가입 완료, 회원 탈퇴 API를 제공합니다.</p>
+ *
+ * <h3>API 목록:</h3>
+ * <ul>
+ *   <li>GET /api/v1/auth/kakao/login-url - 카카오 로그인 URL 조회</li>
+ *   <li>POST /api/v1/auth/login - 카카오 로그인</li>
+ *   <li>GET /api/v1/auth/google/login-url - 구글 로그인 URL 조회</li>
+ *   <li>POST /api/v1/auth/google/login - 구글 로그인</li>
+ *   <li>POST /api/v1/auth/signup/complete - 회원가입 완료</li>
+ *   <li>DELETE /api/v1/auth/withdraw - 회원 탈퇴</li>
+ * </ul>
+ *
+ * @author MessageApp Team
+ * @since 1.0
+ * @see AuthService
+ */
 @Tag(name = "인증", description = "인증 관련 API")
 @Slf4j
 @RequiredArgsConstructor
@@ -29,19 +48,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 public class AuthController {
 
+    /** 인증 서비스 */
     private final AuthService authService;
 
-    @Value("${oauth.kakao.client-id}")
-    private String kakaoClientId;
-
-    @Value("${oauth.kakao.redirect-uri}")
-    private String kakaoRedirectUri;
-
-    @Value("${oauth.google.client-id}")
-    private String googleClientId;
-
-    @Value("${oauth.google.redirect-uri}")
-    private String googleRedirectUri;
+    /** OAuth 설정 프로퍼티 */
+    private final OAuthProperties oAuthProperties;
 
     @Operation(summary = "카카오 로그인 URL 조회", description = "카카오 OAuth 로그인 URL을 반환합니다.")
     @ApiResponses({
@@ -51,8 +62,8 @@ public class AuthController {
     @GetMapping("/kakao/login-url")
     public KakaoLoginUrlResponse getKakaoLoginUrl() {
         String loginUrl = "https://kauth.kakao.com/oauth/authorize" +
-                "?client_id=" + kakaoClientId +
-                "&redirect_uri=" + kakaoRedirectUri +
+                "?client_id=" + oAuthProperties.getKakao().getClientId() +
+                "&redirect_uri=" + oAuthProperties.getKakao().getRedirectUri() +
                 "&response_type=code" +
                 "&prompt=login";
         return new KakaoLoginUrlResponse(loginUrl);
@@ -78,8 +89,8 @@ public class AuthController {
     @GetMapping("/google/login-url")
     public GoogleLoginUrlResponse getGoogleLoginUrl() {
         String loginUrl = "https://accounts.google.com/o/oauth2/v2/auth" +
-                "?client_id=" + googleClientId +
-                "&redirect_uri=" + googleRedirectUri +
+                "?client_id=" + oAuthProperties.getGoogle().getClientId() +
+                "&redirect_uri=" + oAuthProperties.getGoogle().getRedirectUri() +
                 "&response_type=code" +
                 "&scope=openid email profile" +
                 "&access_type=offline" +

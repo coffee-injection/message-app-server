@@ -5,9 +5,11 @@ import com.messageapp.global.error.ErrorCode;
 
 public class InvalidAccessTokenException extends AppException {
 
-    public static final AppException EXCEPTION = new InvalidAccessTokenException();
-
-    private InvalidAccessTokenException() {
+    public InvalidAccessTokenException() {
         super(ErrorCode.INVALID_ACCESS_TOKEN);
+    }
+
+    public InvalidAccessTokenException(String additionalMessage) {
+        super(ErrorCode.INVALID_ACCESS_TOKEN, additionalMessage);
     }
 }

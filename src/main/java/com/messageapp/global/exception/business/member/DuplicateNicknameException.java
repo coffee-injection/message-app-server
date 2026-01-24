@@ -5,9 +5,11 @@ import com.messageapp.global.error.ErrorCode;
 
 public class DuplicateNicknameException extends AppException {
 
-    public static final AppException EXCEPTION = new DuplicateNicknameException();
-
-    private DuplicateNicknameException() {
+    public DuplicateNicknameException() {
         super(ErrorCode.DUPLICATE_NICKNAME);
+    }
+
+    public DuplicateNicknameException(String additionalMessage) {
+        super(ErrorCode.DUPLICATE_NICKNAME, additionalMessage);
     }
 }

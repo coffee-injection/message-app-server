@@ -5,9 +5,11 @@ import com.messageapp.global.error.ErrorCode;
 
 public class GoogleUserInfoFailedException extends AppException {
 
-    public static final AppException EXCEPTION = new GoogleUserInfoFailedException();
-
-    private GoogleUserInfoFailedException() {
+    public GoogleUserInfoFailedException() {
         super(ErrorCode.GOOGLE_USER_INFO_FAILED);
+    }
+
+    public GoogleUserInfoFailedException(String additionalMessage) {
+        super(ErrorCode.GOOGLE_USER_INFO_FAILED, additionalMessage);
     }
 }

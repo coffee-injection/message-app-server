@@ -5,9 +5,11 @@ import com.messageapp.global.error.ErrorCode;
 
 public class KakaoUserInfoFailedException extends AppException {
 
-    public static final AppException EXCEPTION = new KakaoUserInfoFailedException();
-
-    private KakaoUserInfoFailedException() {
+    public KakaoUserInfoFailedException() {
         super(ErrorCode.KAKAO_USER_INFO_FAILED);
+    }
+
+    public KakaoUserInfoFailedException(String additionalMessage) {
+        super(ErrorCode.KAKAO_USER_INFO_FAILED, additionalMessage);
     }
 }

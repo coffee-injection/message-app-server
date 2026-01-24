@@ -21,6 +21,22 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 편지 관련 REST API 컨트롤러
+ *
+ * <p>편지 발송, 조회, 읽음 처리 API를 제공합니다.</p>
+ *
+ * <h3>API 목록:</h3>
+ * <ul>
+ *   <li>GET /api/v1/letter/list - 수신 편지 목록 조회</li>
+ *   <li>POST /api/v1/letter/send - 편지 발송 (랜덤 수신자)</li>
+ *   <li>GET /api/v1/letter/{letterId} - 편지 상세 조회 및 읽음 처리</li>
+ * </ul>
+ *
+ * @author MessageApp Team
+ * @since 1.0
+ * @see LetterService
+ */
 @Tag(name = "편지", description = "편지 관련 API")
 @SecurityRequirement(name = "JWT")
 @Slf4j
@@ -29,6 +45,7 @@ import java.util.List;
 @RestController
 public class LetterController {
 
+    /** 편지 서비스 */
     private final LetterService letterService;
 
     @Operation(summary = "수신한 편지 목록 조회", description = "로그인한 사용자가 받은 편지 목록을 조회합니다.")

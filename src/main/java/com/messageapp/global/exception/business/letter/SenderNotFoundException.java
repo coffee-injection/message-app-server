@@ -5,9 +5,11 @@ import com.messageapp.global.error.ErrorCode;
 
 public class SenderNotFoundException extends AppException {
 
-    public static final AppException EXCEPTION = new SenderNotFoundException();
-
-    private SenderNotFoundException() {
+    public SenderNotFoundException() {
         super(ErrorCode.SENDER_NOT_FOUND);
+    }
+
+    public SenderNotFoundException(String additionalMessage) {
+        super(ErrorCode.SENDER_NOT_FOUND, additionalMessage);
     }
 }
