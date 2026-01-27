@@ -142,10 +142,14 @@ public class Member extends BaseEntity {
     /**
      * 회원을 비활성화합니다 (탈퇴 처리).
      *
-     * <p>상태를 INACTIVE로 변경하여 소프트 삭제를 수행합니다.</p>
+     * <p>상태를 INACTIVE로 변경하고, email을 변경하여 동일 OAuth 계정으로
+     * 재가입이 가능하도록 합니다.</p>
+     *
+     * <p>email 변경 형식: deleted_{timestamp}_{originalEmail}</p>
      */
     public void deactivate() {
         this.status = MemberStatus.INACTIVE;
+        this.email = "deleted_" + System.currentTimeMillis() + "_" + this.email;
     }
 
     /**
