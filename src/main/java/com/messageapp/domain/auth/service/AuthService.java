@@ -9,7 +9,7 @@ import com.messageapp.global.exception.validation.InvalidTempTokenException;
 /**
  * 인증 서비스 인터페이스
  *
- * <p>OAuth 소셜 로그인, 회원가입 완료, 회원 탈퇴 기능을 정의합니다.</p>
+ * <p>OAuth 소셜 로그인, 회원가입 완료, 토큰 갱신, 회원 탈퇴 기능을 정의합니다.</p>
  *
  * @author MessageApp Team
  * @since 1.0
@@ -50,9 +50,21 @@ public interface AuthService {
     JwtTokenResponse completeSignup(String token, String nickname, String islandName, Integer profileImageIndex);
 
     /**
+     * Refresh Token으로 Access Token을 갱신합니다.
+     *
+     * <p>유효한 Refresh Token을 제출하면 새로운 Access Token과
+     * Refresh Token(Rotation)을 발급합니다.</p>
+     *
+     * @param refreshToken Refresh Token
+     * @return 새로운 JWT 토큰 응답
+     */
+    JwtTokenResponse refreshToken(String refreshToken);
+
+    /**
      * 회원 탈퇴를 처리합니다.
      *
-     * <p>OAuth 연결을 해제하고 회원 상태를 INACTIVE로 변경합니다.</p>
+     * <p>OAuth 연결을 해제하고 회원 상태를 INACTIVE로 변경합니다.
+     * Refresh Token도 함께 삭제됩니다.</p>
      *
      * @param memberId 탈퇴할 회원 ID
      * @throws MemberNotFoundException 회원을 찾을 수 없는 경우

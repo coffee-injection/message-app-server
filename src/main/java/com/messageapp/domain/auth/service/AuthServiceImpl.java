@@ -3,11 +3,15 @@ package com.messageapp.domain.auth.service;
 import com.messageapp.api.auth.OauthProvider;
 import com.messageapp.domain.auth.dto.JwtTokenResponse;
 import com.messageapp.domain.auth.dto.OAuthUserInfo;
+import com.messageapp.domain.auth.entity.RefreshToken;
+import com.messageapp.domain.auth.repository.RefreshTokenRepository;
 import com.messageapp.domain.auth.strategy.OAuthLoginStrategy;
 import com.messageapp.domain.member.entity.Member;
 import com.messageapp.domain.member.repository.MemberRepository;
 import com.messageapp.global.config.JwtProperties;
 import com.messageapp.global.constant.OAuthConstants;
+import com.messageapp.global.error.AppException;
+import com.messageapp.global.error.ErrorCode;
 import com.messageapp.global.exception.auth.InvalidAccessTokenException;
 import com.messageapp.global.exception.auth.UnsupportedOauthProviderException;
 import com.messageapp.global.exception.business.member.DuplicateMemberException;
@@ -21,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +59,9 @@ public class AuthServiceImpl implements AuthService {
 
     /** 회원 저장소 */
     private final MemberRepository memberRepository;
+
+    /** Refresh Token 저장소 */
+    private final RefreshTokenRepository refreshTokenRepository;
 
     /** JWT 토큰 생성/검증 제공자 */
     private final JwtTokenProvider jwtTokenProvider;
@@ -134,12 +142,19 @@ public class AuthServiceImpl implements AuthService {
 
         if (existingMember != null) {
             String accessToken = jwtTokenProvider.generateAccessToken(existingMember.getId(), existingMember.getEmail());
+            String refreshToken = jwtTokenProvider.generateRefreshToken(existingMember.getId());
+
+            // Refresh Token 저장 또는 갱신
+            saveOrUpdateRefreshToken(existingMember, refreshToken);
+
             log.info("기존 회원 로그인 성공: memberId = {}, email = {}", existingMember.getId(), virtualEmail);
 
             return JwtTokenResponse.builder()
                     .accessToken(accessToken)
+                    .refreshToken(refreshToken)
                     .tokenType(OAuthConstants.TOKEN_TYPE_BEARER)
                     .expiresIn(jwtProperties.getAccessTokenExpiration() / 1000)
+                    .refreshExpiresIn(jwtProperties.getRefreshTokenExpiration() / 1000)
                     .memberId(existingMember.getId())
                     .email(existingMember.getEmail())
                     .isNewMember(false)
@@ -206,13 +221,19 @@ public class AuthServiceImpl implements AuthService {
 
         Member savedMember = memberRepository.save(newMember);
         String accessToken = jwtTokenProvider.generateAccessToken(savedMember.getId(), savedMember.getEmail());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(savedMember.getId());
+
+        // 새 회원의 Refresh Token 저장
+        saveOrUpdateRefreshToken(savedMember, refreshToken);
 
         log.info("회원가입 완료: memberId = {}, email = {}, nickname = {}", savedMember.getId(), email, nickname);
 
         return JwtTokenResponse.builder()
                 .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .tokenType(OAuthConstants.TOKEN_TYPE_BEARER)
                 .expiresIn(jwtProperties.getAccessTokenExpiration() / 1000)
+                .refreshExpiresIn(jwtProperties.getRefreshTokenExpiration() / 1000)
                 .memberId(savedMember.getId())
                 .email(savedMember.getEmail())
                 .isNewMember(false)
@@ -251,7 +272,97 @@ public class AuthServiceImpl implements AuthService {
                     memberId, provider.getValue(), oauthId);
         }
 
+        // Refresh Token 삭제
+        refreshTokenRepository.deleteByMemberId(memberId);
+        log.info("Refresh Token 삭제 완료: memberId = {}", memberId);
+
         member.deactivate();
         log.info("회원 탈퇴 완료: memberId = {}, email = {}", memberId, member.getEmail());
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <h4>처리 흐름:</h4>
+     * <ol>
+     *   <li>Refresh Token JWT 유효성 검증</li>
+     *   <li>DB에서 Refresh Token 조회</li>
+     *   <li>토큰 만료 여부 확인</li>
+     *   <li>회원 상태 확인 (ACTIVE인지)</li>
+     *   <li>새 Access Token 및 Refresh Token 발급 (Rotation)</li>
+     * </ol>
+     */
+    @Override
+    @Transactional
+    public JwtTokenResponse refreshToken(String refreshToken) {
+        // 1. Refresh Token JWT 형식 검증
+        if (!jwtTokenProvider.validateRefreshToken(refreshToken)) {
+            throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
+        }
+
+        // 2. DB에서 Refresh Token 조회
+        RefreshToken storedToken = refreshTokenRepository.findByToken(refreshToken)
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_REFRESH_TOKEN));
+
+        // 3. 토큰 만료 여부 확인
+        if (storedToken.isExpired()) {
+            refreshTokenRepository.delete(storedToken);
+            throw new AppException(ErrorCode.REFRESH_TOKEN_EXPIRED);
+        }
+
+        // 4. 회원 상태 확인
+        Member member = storedToken.getMember();
+        if (!member.isActive()) {
+            refreshTokenRepository.delete(storedToken);
+            throw new AppException(ErrorCode.MEMBER_NOT_ACTIVE);
+        }
+
+        // 5. 새 토큰 발급 (Refresh Token Rotation)
+        String newAccessToken = jwtTokenProvider.generateAccessToken(member.getId(), member.getEmail());
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken(member.getId());
+
+        // Refresh Token 갱신
+        LocalDateTime newExpiresAt = LocalDateTime.now()
+                .plusSeconds(jwtProperties.getRefreshTokenExpiration() / 1000);
+        storedToken.updateToken(newRefreshToken, newExpiresAt);
+
+        log.info("토큰 갱신 완료: memberId = {}", member.getId());
+
+        return JwtTokenResponse.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .tokenType(OAuthConstants.TOKEN_TYPE_BEARER)
+                .expiresIn(jwtProperties.getAccessTokenExpiration() / 1000)
+                .refreshExpiresIn(jwtProperties.getRefreshTokenExpiration() / 1000)
+                .memberId(member.getId())
+                .email(member.getEmail())
+                .isNewMember(false)
+                .nickname(member.getName())
+                .islandName(member.getIslandName())
+                .profileImageIndex(member.getProfileImageIndex())
+                .build();
+    }
+
+    /**
+     * Refresh Token을 저장하거나 기존 토큰을 갱신합니다.
+     *
+     * @param member 회원 엔티티
+     * @param refreshToken 새 Refresh Token
+     */
+    private void saveOrUpdateRefreshToken(Member member, String refreshToken) {
+        LocalDateTime expiresAt = LocalDateTime.now()
+                .plusSeconds(jwtProperties.getRefreshTokenExpiration() / 1000);
+
+        refreshTokenRepository.findByMemberId(member.getId())
+                .ifPresentOrElse(
+                        existingToken -> existingToken.updateToken(refreshToken, expiresAt),
+                        () -> refreshTokenRepository.save(
+                                RefreshToken.builder()
+                                        .member(member)
+                                        .token(refreshToken)
+                                        .expiresAt(expiresAt)
+                                        .build()
+                        )
+                );
     }
 }
