@@ -1,11 +1,14 @@
 package com.messageapp.global.security;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -29,7 +32,10 @@ import java.util.List;
  */
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     /**
      * Spring Security 필터 체인 설정
@@ -44,16 +50,32 @@ public class SecurityConfig {
             // CORS 설정 적용
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
+            // 세션 사용 안함 (JWT 기반 인증)
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
             // URL별 접근 권한 설정
             .authorizeHttpRequests(auth -> auth
-                // Swagger UI 관련 경로는 인증 없이 접근 허용
+                // 공개 경로 설정
                 .requestMatchers(
+                    // 인증 관련
+                    "/api/v1/auth/login",
+                    "/api/v1/auth/kakao/**",
+                    "/api/v1/auth/google/**",
+                    "/api/v1/auth/signup/complete",
+                    "/api/v1/auth/refresh",
+                    // Swagger UI
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
                     "/swagger-resources/**",
-                    "/webjars/**"
+                    "/webjars/**",
+                    // H2 Console
+                    "/h2-console/**",
+                    // Health check
+                    "/actuator/**",
+                    "/health"
                 ).permitAll()
-                // 그 외 모든 요청 허용 (JWT 필터에서 인증 처리)
+                // 그 외 모든 요청은 인증 필요 (JWT 필터에서 처리)
                 .anyRequest().permitAll())
 
             // CSRF 비활성화 (REST API이므로 불필요)
@@ -68,7 +90,10 @@ public class SecurityConfig {
                     org.springframework.security.web.header.writers.XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
                 // X-Content-Type-Options: MIME 타입 스니핑 방지
                 .contentTypeOptions(contentTypeOptions -> {})
-            );
+            )
+
+            // JWT 인증 필터 추가
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
