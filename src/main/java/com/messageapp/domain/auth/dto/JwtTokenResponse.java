@@ -29,11 +29,17 @@ public class JwtTokenResponse {
     /** JWT Access Token */
     private String accessToken;
 
+    /** JWT Refresh Token (신규 회원은 null) */
+    private String refreshToken;
+
     /** 토큰 타입 (Bearer) */
     private String tokenType;
 
-    /** 토큰 만료 시간 (초 단위) */
+    /** Access Token 만료 시간 (초 단위) */
     private Long expiresIn;
+
+    /** Refresh Token 만료 시간 (초 단위, 신규 회원은 null) */
+    private Long refreshExpiresIn;
 
     /** 회원 ID (신규 회원은 null) */
     private Long memberId;
