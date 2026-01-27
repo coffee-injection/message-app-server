@@ -6,6 +6,7 @@ import com.messageapp.domain.auth.dto.JwtTokenResponse;
 import com.messageapp.domain.auth.dto.KakaoLoginRequest;
 import com.messageapp.domain.auth.dto.KakaoLoginUrlResponse;
 import com.messageapp.domain.auth.dto.SignupCompleteRequest;
+import com.messageapp.domain.auth.dto.TokenRefreshRequest;
 import com.messageapp.domain.auth.service.AuthService;
 import com.messageapp.global.auth.LoginMember;
 import com.messageapp.global.config.OAuthProperties;
@@ -124,6 +125,22 @@ public class AuthController {
             @Valid @RequestBody SignupCompleteRequest request) {
         String token = authHeader.replace("Bearer ", "");
         return authService.completeSignup(token, request.getNickname(), request.getIslandName(), request.getProfileImageIndex());
+    }
+
+    @Operation(
+            summary = "토큰 갱신",
+            description = "Refresh Token으로 새로운 Access Token과 Refresh Token을 발급받습니다.\n\n" +
+                    "**Refresh Token Rotation**: 보안 강화를 위해 매 갱신 시 새로운 Refresh Token이 발급됩니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "토큰 갱신 성공",
+                    content = @Content(schema = @Schema(implementation = JwtTokenResponse.class))),
+            @ApiResponse(responseCode = "401", description = "유효하지 않은 Refresh Token", content = @Content),
+            @ApiResponse(responseCode = "403", description = "비활성화된 회원 또는 만료된 Refresh Token", content = @Content)
+    })
+    @PostMapping("/refresh")
+    public JwtTokenResponse refreshToken(@Valid @RequestBody TokenRefreshRequest request) {
+        return authService.refreshToken(request.getRefreshToken());
     }
 
     @Operation(
