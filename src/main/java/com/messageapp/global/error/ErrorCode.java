@@ -83,13 +83,22 @@ public enum ErrorCode {
     /** 유효하지 않은 액세스 토큰 */
     INVALID_ACCESS_TOKEN(401, "유효하지 않은 액세스 토큰입니다."),
 
+    /** 유효하지 않은 리프레시 토큰 */
+    INVALID_REFRESH_TOKEN(401, "유효하지 않은 리프레시 토큰입니다."),
+
+    /** 만료된 리프레시 토큰 */
+    REFRESH_TOKEN_EXPIRED(401, "만료된 리프레시 토큰입니다."),
+
     // ==================== 403 FORBIDDEN ====================
 
-    /** 리프레시 토큰 만료 */
+    /** 리프레시 토큰 만료 (레거시) */
     REFRESH_TOKEN_EXPIRED_TOKEN(HttpStatus.FORBIDDEN.value(),"refreshToken 만료."),
 
     /** 로그인 필요 */
     NECESSARY_LOGIN(403,"로그인이 반드시 필요한 서비스입니다"),
+
+    /** 비활성화된 회원 */
+    MEMBER_NOT_ACTIVE(403, "비활성화된 회원입니다."),
 
     /** 편지 조회 권한 없음 */
     LETTER_ACCESS_DENIED(403, "해당 편지를 조회할 권한이 없습니다."),
