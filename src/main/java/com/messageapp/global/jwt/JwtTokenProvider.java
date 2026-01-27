@@ -187,6 +187,62 @@ public class JwtTokenProvider {
     }
 
     /**
+     * Refresh Token을 생성합니다.
+     *
+     * @param memberId 회원 ID
+     * @return 생성된 Refresh Token
+     */
+    public String generateRefreshToken(Long memberId) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + jwtProperties.getRefreshTokenExpiration());
+
+        return Jwts.builder()
+                .subject(String.valueOf(memberId))
+                .claim("type", "refresh")
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    /**
+     * Refresh Token의 유효성을 검증합니다.
+     *
+     * @param token Refresh Token
+     * @return 유효하면 true, 아니면 false
+     */
+    public boolean validateRefreshToken(String token) {
+        try {
+            Claims claims = parseClaims(token);
+            String tokenType = claims.get("type", String.class);
+            return "refresh".equals(tokenType);
+        } catch (Exception e) {
+            log.error("Refresh Token 검증 실패: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Refresh Token에서 회원 ID를 추출합니다.
+     *
+     * @param token Refresh Token
+     * @return 회원 ID
+     */
+    public Long getMemberIdFromRefreshToken(String token) {
+        Claims claims = parseClaims(token);
+        return Long.parseLong(claims.getSubject());
+    }
+
+    /**
+     * Refresh Token의 만료 시간을 반환합니다 (밀리초).
+     *
+     * @return 만료 시간 (밀리초)
+     */
+    public Long getRefreshTokenExpiration() {
+        return jwtProperties.getRefreshTokenExpiration();
+    }
+
+    /**
      * JWT 토큰을 파싱하여 Claims를 추출합니다.
      *
      * @param token JWT 토큰
