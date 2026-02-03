@@ -64,6 +64,8 @@ public class SecurityConfig {
                     "/api/v1/auth/google/**",
                     "/api/v1/auth/signup/complete",
                     "/api/v1/auth/refresh",
+                    // 회원 닉네임 중복 체크
+                    "/api/v1/member/check-nickname",
                     // Swagger UI
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
