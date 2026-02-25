@@ -36,6 +36,9 @@ public class OAuthProperties {
     /** 구글 OAuth 설정 */
     private GoogleProperties google = new GoogleProperties();
 
+    /** 애플 OAuth 설정 */
+    private AppleProperties apple = new AppleProperties();
+
     /**
      * 카카오 OAuth 설정 프로퍼티
      */
@@ -69,5 +72,15 @@ public class OAuthProperties {
 
         /** 구글 로그인 후 리다이렉트 URI */
         private String redirectUri;
+    }
+
+    /**
+     * 애플 OAuth 설정 프로퍼티
+     */
+    @Getter
+    @Setter
+    public static class AppleProperties {
+        /** 애플 앱 Client ID (Bundle ID) */
+        private String clientId;
     }
 }

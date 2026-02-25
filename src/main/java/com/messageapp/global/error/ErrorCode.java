@@ -145,6 +145,9 @@ public enum ErrorCode {
     /** 구글 사용자 정보 조회 실패 */
     GOOGLE_USER_INFO_FAILED(500, "구글 사용자 정보 조회 중 오류가 발생했습니다."),
 
+    /** 애플 로그인 실패 */
+    APPLE_LOGIN_FAILED(500, "애플 로그인 처리 중 오류가 발생했습니다."),
+
     /** 서버 내부 오류 */
     INTERNAL_SERVER_ERROR(500,"서버 에러"),
 

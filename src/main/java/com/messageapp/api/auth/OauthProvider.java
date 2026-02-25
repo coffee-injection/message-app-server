@@ -13,6 +13,7 @@ import lombok.Getter;
  * <ul>
  *   <li>KAKAO - 카카오 로그인</li>
  *   <li>GOOGLE - 구글 로그인</li>
+ *   <li>APPLE - 애플 로그인</li>
  * </ul>
  *
  * @author MessageApp Team
@@ -26,7 +27,10 @@ public enum OauthProvider {
     KAKAO("KAKAO"),
 
     /** 구글 소셜 로그인 */
-    GOOGLE("GOOGLE");
+    GOOGLE("GOOGLE"),
+
+    /** 애플 소셜 로그인 */
+    APPLE("APPLE");
 
     /** 제공자 문자열 값 */
     private String oauthProvider;
