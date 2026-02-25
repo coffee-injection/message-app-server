@@ -1,5 +1,6 @@
 package com.messageapp.api.auth;
 
+import com.messageapp.domain.auth.dto.AppleLoginRequest;
 import com.messageapp.domain.auth.dto.GoogleLoginRequest;
 import com.messageapp.domain.auth.dto.GoogleLoginUrlResponse;
 import com.messageapp.domain.auth.dto.JwtTokenResponse;
@@ -34,6 +35,7 @@ import org.springframework.web.bind.annotation.*;
  *   <li>POST /api/v1/auth/login - 카카오 로그인</li>
  *   <li>GET /api/v1/auth/google/login-url - 구글 로그인 URL 조회</li>
  *   <li>POST /api/v1/auth/google/login - 구글 로그인</li>
+ *   <li>POST /api/v1/auth/apple/login - 애플 로그인</li>
  *   <li>POST /api/v1/auth/signup/complete - 회원가입 완료</li>
  *   <li>DELETE /api/v1/auth/withdraw - 회원 탈퇴</li>
  * </ul>
@@ -109,6 +111,18 @@ public class AuthController {
     @PostMapping("/google/login")
     public JwtTokenResponse googleLogin(@Valid @RequestBody GoogleLoginRequest googleLoginRequest) {
         return authService.googleLogin(googleLoginRequest.getCode());
+    }
+
+    @Operation(summary = "애플 로그인", description = "Apple idToken으로 로그인하여 JWT 토큰을 발급받습니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "로그인 성공",
+                    content = @Content(schema = @Schema(implementation = JwtTokenResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청", content = @Content),
+            @ApiResponse(responseCode = "401", description = "인증 실패", content = @Content)
+    })
+    @PostMapping("/apple/login")
+    public JwtTokenResponse appleLogin(@Valid @RequestBody AppleLoginRequest appleLoginRequest) {
+        return authService.appleLogin(appleLoginRequest.getIdToken());
     }
 
     @Operation(summary = "회원가입 완료", description = "닉네임, 섬 이름, 프로필 이미지를 입력하여 회원가입을 완료하고 JWT 토큰을 발급받습니다.")

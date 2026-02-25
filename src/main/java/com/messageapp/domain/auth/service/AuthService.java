@@ -33,6 +33,14 @@ public interface AuthService {
     JwtTokenResponse googleLogin(String authorizationCode);
 
     /**
+     * 애플 소셜 로그인을 수행합니다.
+     *
+     * @param idToken Apple에서 발급한 idToken (JWT)
+     * @return JWT 토큰 응답 (기존 회원: 정식 토큰, 신규 회원: 임시 토큰)
+     */
+    JwtTokenResponse appleLogin(String idToken);
+
+    /**
      * 회원가입을 완료합니다.
      *
      * <p>소셜 로그인 후 발급받은 임시 토큰과 함께 닉네임, 섬 이름,

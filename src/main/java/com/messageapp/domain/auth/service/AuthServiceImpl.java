@@ -111,6 +111,15 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional
+    public JwtTokenResponse appleLogin(String idToken) {
+        return socialLogin(idToken, OauthProvider.APPLE);
+    }
+
+    /**
      * 소셜 로그인 공통 처리 메서드
      *
      * <p>Strategy 패턴을 활용하여 OAuth 제공자별 인증을 처리합니다.</p>
