@@ -55,6 +55,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/api/v1/auth/login",
             "/api/v1/auth/kakao/**",
             "/api/v1/auth/google/**",
+            "/api/v1/auth/apple/**",
             "/api/v1/auth/signup/complete",
             "/api/v1/auth/refresh",
             // OAuth 콜백 (앱 딥링크 리다이렉트)
