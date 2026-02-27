@@ -6,6 +6,7 @@ import com.messageapp.domain.auth.dto.OAuthUserInfo;
 import com.messageapp.domain.auth.entity.RefreshToken;
 import com.messageapp.domain.auth.repository.RefreshTokenRepository;
 import com.messageapp.domain.auth.strategy.OAuthLoginStrategy;
+import com.messageapp.domain.letter.service.WelcomeLetterService;
 import com.messageapp.domain.member.entity.Member;
 import com.messageapp.domain.member.repository.MemberRepository;
 import com.messageapp.global.config.JwtProperties;
@@ -71,6 +72,9 @@ public class AuthServiceImpl implements AuthService {
 
     /** OAuth 연결 해제 서비스 */
     private final OauthUnlinkService oauthUnlinkService;
+
+    /** 환영 편지 서비스 */
+    private final WelcomeLetterService welcomeLetterService;
 
     /** OAuth 로그인 전략 목록 (Spring에서 자동 주입) */
     private final List<OAuthLoginStrategy> loginStrategies;
@@ -234,6 +238,9 @@ public class AuthServiceImpl implements AuthService {
 
         // 새 회원의 Refresh Token 저장
         saveOrUpdateRefreshToken(savedMember, refreshToken);
+
+        // 환영 편지 발송
+        welcomeLetterService.sendWelcomeLetter(savedMember);
 
         log.info("회원가입 완료: memberId = {}, email = {}, nickname = {}", savedMember.getId(), email, nickname);
 
