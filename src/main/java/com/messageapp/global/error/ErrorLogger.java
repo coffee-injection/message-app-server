@@ -1,6 +1,8 @@
 package com.messageapp.global.error;
 
+import com.messageapp.global.slack.SlackNotificationService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -11,10 +13,14 @@ import java.util.Map;
  * 에러 로깅 유틸리티 클래스
  *
  * 비즈니스 예외, 시스템 예외, 검증 예외를 상세하게 로깅합니다.
+ * 시스템 예외의 경우 Slack 알림도 함께 전송합니다.
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class ErrorLogger {
+
+    private final SlackNotificationService slackNotificationService;
 
     private static final String SEPARATOR = "==================== 에러 발생 ====================";
     private static final String END_SEPARATOR = "====================================================";
@@ -67,6 +73,9 @@ public class ErrorLogger {
 
         log.error(sb.toString());
         log.error("[스택 트레이스]", e);
+
+        // Slack 알림 전송
+        slackNotificationService.sendErrorNotification(e, request);
     }
 
     /**
