@@ -8,6 +8,7 @@ import com.messageapp.domain.member.entity.Member;
 import com.messageapp.domain.member.repository.MemberRepository;
 import com.messageapp.global.exception.business.member.MemberNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -31,18 +32,36 @@ public class FcmServiceImpl implements FcmService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 
-        deviceTokenRepository.findByFcmToken(request.getFcmToken())
-                .ifPresentOrElse(
-                        existingToken -> {
-                            if (!existingToken.getMember().getId().equals(memberId)) {
-                                deviceTokenRepository.delete(existingToken);
-                                saveNewToken(member, request);
-                            }
-                        },
-                        () -> saveNewToken(member, request)
-                );
+        String fcmToken = request.getFcmToken();
+
+        try {
+            deviceTokenRepository.findByFcmToken(fcmToken)
+                    .ifPresentOrElse(
+                            existingToken -> updateExistingToken(existingToken, member, request),
+                            () -> saveNewToken(member, request)
+                    );
+        } catch (DataIntegrityViolationException e) {
+            // 동시 요청으로 인한 중복 발생 시, 기존 토큰 업데이트
+            handleDuplicateToken(fcmToken, member, request);
+        }
 
         log.info("FCM 토큰 등록 완료: memberId = {}", memberId);
+    }
+
+    private void updateExistingToken(DeviceToken existingToken, Member member, DeviceTokenRequest request) {
+        if (!existingToken.getMember().getId().equals(member.getId())) {
+            // 다른 회원의 토큰이면 소유자 변경
+            existingToken.updateMember(member);
+            existingToken.updateDeviceType(request.getDeviceType());
+            log.info("FCM 토큰 소유자 변경: {} -> {}", existingToken.getMember().getId(), member.getId());
+        }
+        // 같은 회원이면 아무것도 안함 (이미 등록됨)
+    }
+
+    private void handleDuplicateToken(String fcmToken, Member member, DeviceTokenRequest request) {
+        log.warn("FCM 토큰 중복 발생, 재조회 후 업데이트: fcmToken = {}", fcmToken);
+        deviceTokenRepository.findByFcmToken(fcmToken)
+                .ifPresent(existingToken -> updateExistingToken(existingToken, member, request));
     }
 
     private void saveNewToken(Member member, DeviceTokenRequest request) {

@@ -40,4 +40,12 @@ public class DeviceToken extends BaseEntity {
     public void updateToken(String newToken) {
         this.fcmToken = newToken;
     }
+
+    public void updateMember(Member newMember) {
+        this.member = newMember;
+    }
+
+    public void updateDeviceType(DeviceType deviceType) {
+        this.deviceType = deviceType;
+    }
 }
