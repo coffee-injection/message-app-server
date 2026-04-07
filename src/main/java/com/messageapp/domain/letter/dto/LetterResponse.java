@@ -69,4 +69,28 @@ public class LetterResponse {
                 .readAt(letter.getReadAt())
                 .build();
     }
+
+    /**
+     * 쉐도우 밴 처리된 편지 응답을 생성합니다.
+     *
+     * <p>욕설/비속어가 포함된 편지는 실제로 저장되지 않지만,
+     * 발신자에게는 정상 발송된 것처럼 보이는 가짜 응답을 반환합니다.</p>
+     *
+     * @param sender 발신자 정보
+     * @param content 편지 내용
+     * @return 가짜 편지 응답 DTO
+     */
+    public static LetterResponse shadowBanned(com.messageapp.domain.member.entity.Member sender, String content) {
+        return LetterResponse.builder()
+                .letterId(-1L)
+                .content(content)
+                .senderName(sender.getName())
+                .senderIslandName(sender.getIslandName())
+                .senderProfileImageIndex(sender.getProfileImageIndex())
+                .status(LetterStatus.DELIVERED)
+                .createdAt(java.time.LocalDateTime.now())
+                .matchedAt(java.time.LocalDateTime.now())
+                .readAt(null)
+                .build();
+    }
 }

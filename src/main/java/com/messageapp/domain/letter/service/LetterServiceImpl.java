@@ -55,6 +55,9 @@ public class LetterServiceImpl implements LetterService {
     /** FCM 푸시 알림 서비스 */
     private final FcmService fcmService;
 
+    /** 욕설/비속어 필터링 서비스 */
+    private final ProfanityFilterService profanityFilterService;
+
     /**
      * {@inheritDoc}
      *
@@ -94,6 +97,12 @@ public class LetterServiceImpl implements LetterService {
         // 발신자 조회
         Member sender = memberRepository.findById(senderId)
                 .orElseThrow(SenderNotFoundException::new);
+
+        // 욕설 감지 시 쉐도우 밴 - 발신자에게는 성공처럼 보이지만 실제 발송 안 함
+        if (profanityFilterService.containsProfanity(content)) {
+            log.info("쉐도우 밴 처리: senderId = {}", senderId);
+            return LetterResponse.shadowBanned(sender, content);
+        }
 
         // 3~5명의 랜덤 수신자 선택
         int receiverCount = ThreadLocalRandom.current().nextInt(3, 6); // 3, 4, 5 중 랜덤
