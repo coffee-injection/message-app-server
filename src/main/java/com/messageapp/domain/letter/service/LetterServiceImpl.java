@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 편지 서비스 구현체
@@ -78,14 +79,14 @@ public class LetterServiceImpl implements LetterService {
      * <h4>처리 흐름:</h4>
      * <ol>
      *   <li>발신자 조회</li>
-     *   <li>DB에서 랜덤 수신자 선택 (발신자 제외, 활성 회원만)</li>
-     *   <li>편지 생성 및 수신자 배정</li>
+     *   <li>DB에서 랜덤 수신자 3~5명 선택 (발신자 제외, 활성 회원만)</li>
+     *   <li>각 수신자에 대해 편지 생성 및 배정</li>
      *   <li>편지 저장</li>
-     *   <li>수신자에게 FCM 푸시 알림 발송</li>
+     *   <li>각 수신자에게 FCM 푸시 알림 발송</li>
      * </ol>
      *
-     * <p>랜덤 수신자 선택은 DB 네이티브 쿼리(ORDER BY RAND())를 사용하여
-     * 메모리 사용을 최소화합니다.</p>
+     * <p>랜덤 수신자 선택은 DB 네이티브 쿼리(ORDER BY RAND() LIMIT N)를 사용하여
+     * 메모리 사용을 최소화합니다. 동일한 content로 3~5개의 Letter가 생성됩니다.</p>
      */
     @Override
     @Transactional
@@ -94,27 +95,36 @@ public class LetterServiceImpl implements LetterService {
         Member sender = memberRepository.findById(senderId)
                 .orElseThrow(SenderNotFoundException::new);
 
-        // DB에서 랜덤 수신자 선택 (성능 최적화: ORDER BY RAND() LIMIT 1)
-        Member receiver = memberRepository.findRandomActiveMember(senderId)
-                .orElseThrow(NoAvailableReceiverException::new);
+        // 3~5명의 랜덤 수신자 선택
+        int receiverCount = ThreadLocalRandom.current().nextInt(3, 6); // 3, 4, 5 중 랜덤
+        List<Member> receivers = memberRepository.findRandomActiveMembers(senderId, receiverCount);
 
-        // 편지 생성 및 수신자 배정
-        Letter letter = Letter.builder()
-                .sender(sender)
-                .content(content)
-                .build();
+        if (receivers.isEmpty()) {
+            throw new NoAvailableReceiverException();
+        }
 
-        letter.assignReceiver(receiver);
+        Letter firstLetter = null;
 
-        Letter savedLetter = letterRepository.save(letter);
+        for (Member receiver : receivers) {
+            Letter letter = Letter.builder()
+                    .sender(sender)
+                    .content(content)
+                    .build();
+            letter.assignReceiver(receiver);
+            Letter savedLetter = letterRepository.save(letter);
 
-        log.info("편지 발송 완료: senderId = {}, receiverId = {}, letterId = {}",
-                senderId, receiver.getId(), savedLetter.getId());
+            if (firstLetter == null) {
+                firstLetter = savedLetter;
+            }
 
-        // FCM 푸시 알림 발송 (비동기)
-        fcmService.sendLetterArrivalNotification(receiver.getId(), sender.getName());
+            log.info("편지 발송 완료: senderId = {}, receiverId = {}, letterId = {}",
+                    senderId, receiver.getId(), savedLetter.getId());
 
-        return LetterResponse.from(savedLetter);
+            // FCM 푸시 알림 발송 (비동기)
+            fcmService.sendLetterArrivalNotification(receiver.getId(), sender.getName());
+        }
+
+        return LetterResponse.from(firstLetter);
     }
 
     /**

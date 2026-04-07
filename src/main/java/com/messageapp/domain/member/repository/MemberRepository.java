@@ -54,6 +54,21 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     Optional<Member> findRandomActiveMember(@Param("senderId") Long senderId);
 
     /**
+     * 발신자를 제외한 활성 회원 중 랜덤으로 N명을 선택합니다.
+     *
+     * <p>DB에서 직접 랜덤 선택(ORDER BY RAND() LIMIT N)을 수행하여
+     * 메모리 사용을 최소화합니다.</p>
+     *
+     * <p><b>Note:</b> MySQL의 RAND() 함수를 사용하므로 MySQL 환경에서만 동작합니다.</p>
+     *
+     * @param senderId 제외할 발신자 ID
+     * @param count 선택할 수신자 수
+     * @return 랜덤 선택된 활성 회원 목록
+     */
+    @Query(value = "SELECT * FROM members WHERE member_id != :senderId AND status = 'ACTIVE' ORDER BY RAND() LIMIT :count", nativeQuery = true)
+    List<Member> findRandomActiveMembers(@Param("senderId") Long senderId, @Param("count") int count);
+
+    /**
      * 해당 닉네임이 이미 사용 중인지 확인합니다.
      *
      * @param name 확인할 닉네임
