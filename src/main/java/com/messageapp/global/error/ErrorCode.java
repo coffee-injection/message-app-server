@@ -128,6 +128,15 @@ public enum ErrorCode {
     /** 신고 중복 */
     DUPLICATE_REPORT(409, "이미 신고한 편지입니다."),
 
+    /** 차단 중복 */
+    DUPLICATE_BLOCK(409, "이미 차단한 회원입니다."),
+
+    /** 자기 자신 차단 불가 */
+    SELF_BLOCK_NOT_ALLOWED(400, "자기 자신을 차단할 수 없습니다."),
+
+    /** 차단 정보 없음 */
+    BLOCK_NOT_FOUND(404, "차단 정보를 찾을 수 없습니다."),
+
     // ==================== 500 INTERNAL_SERVER_ERROR ====================
 
     /** 카카오 로그인 실패 */

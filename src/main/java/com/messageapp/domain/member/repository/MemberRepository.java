@@ -64,9 +64,40 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
      * @param senderId 제외할 발신자 ID
      * @param count 선택할 수신자 수
      * @return 랜덤 선택된 활성 회원 목록
+     * @deprecated 차단 기능 도입으로 {@link #findRandomActiveMembersExcludingBlocks} 사용 권장
      */
+    @Deprecated
     @Query(value = "SELECT * FROM members WHERE member_id != :senderId AND status = 'ACTIVE' ORDER BY RAND() LIMIT :count", nativeQuery = true)
     List<Member> findRandomActiveMembers(@Param("senderId") Long senderId, @Param("count") int count);
+
+    /**
+     * 발신자를 제외한 활성 회원 중 차단 관계를 제외하고 랜덤으로 N명을 선택합니다.
+     *
+     * <p>다음 조건의 회원은 제외됩니다:</p>
+     * <ul>
+     *   <li>발신자 본인</li>
+     *   <li>발신자가 차단한 회원</li>
+     *   <li>발신자를 차단한 회원</li>
+     * </ul>
+     *
+     * @param senderId 제외할 발신자 ID
+     * @param count 선택할 수신자 수
+     * @return 랜덤 선택된 활성 회원 목록
+     */
+    @Query(value = """
+            SELECT * FROM members m
+            WHERE m.member_id != :senderId
+              AND m.status = 'ACTIVE'
+              AND m.member_id NOT IN (
+                  SELECT mb.blocked_id FROM member_blocks mb WHERE mb.blocker_id = :senderId
+              )
+              AND m.member_id NOT IN (
+                  SELECT mb.blocker_id FROM member_blocks mb WHERE mb.blocked_id = :senderId
+              )
+            ORDER BY RAND()
+            LIMIT :count
+            """, nativeQuery = true)
+    List<Member> findRandomActiveMembersExcludingBlocks(@Param("senderId") Long senderId, @Param("count") int count);
 
     /**
      * 해당 닉네임이 이미 사용 중인지 확인합니다.

@@ -104,9 +104,9 @@ public class LetterServiceImpl implements LetterService {
             return LetterResponse.shadowBanned(sender, content);
         }
 
-        // 3~5명의 랜덤 수신자 선택
+        // 3~5명의 랜덤 수신자 선택 (차단 관계 제외)
         int receiverCount = ThreadLocalRandom.current().nextInt(3, 6); // 3, 4, 5 중 랜덤
-        List<Member> receivers = memberRepository.findRandomActiveMembers(senderId, receiverCount);
+        List<Member> receivers = memberRepository.findRandomActiveMembersExcludingBlocks(senderId, receiverCount);
 
         if (receivers.isEmpty()) {
             throw new NoAvailableReceiverException();
