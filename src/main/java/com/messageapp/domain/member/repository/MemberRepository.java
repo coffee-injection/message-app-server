@@ -71,13 +71,12 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     List<Member> findRandomActiveMembers(@Param("senderId") Long senderId, @Param("count") int count);
 
     /**
-     * 발신자를 제외한 활성 회원 중 차단 관계를 제외하고 랜덤으로 N명을 선택합니다.
+     * 발신자를 제외한 활성 회원 중 발신자를 차단한 회원을 제외하고 랜덤으로 N명을 선택합니다.
      *
      * <p>다음 조건의 회원은 제외됩니다:</p>
      * <ul>
      *   <li>발신자 본인</li>
-     *   <li>발신자가 차단한 회원</li>
-     *   <li>발신자를 차단한 회원</li>
+     *   <li>발신자를 차단한 회원 (나를 차단한 사람에게는 발송 안 함)</li>
      * </ul>
      *
      * @param senderId 제외할 발신자 ID
@@ -88,9 +87,6 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
             SELECT * FROM members m
             WHERE m.member_id != :senderId
               AND m.status = 'ACTIVE'
-              AND m.member_id NOT IN (
-                  SELECT mb.blocked_id FROM member_blocks mb WHERE mb.blocker_id = :senderId
-              )
               AND m.member_id NOT IN (
                   SELECT mb.blocker_id FROM member_blocks mb WHERE mb.blocked_id = :senderId
               )

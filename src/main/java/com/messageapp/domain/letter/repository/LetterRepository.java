@@ -3,6 +3,8 @@ package com.messageapp.domain.letter.repository;
 import com.messageapp.domain.letter.entity.Letter;
 import com.messageapp.domain.letter.entity.LetterStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -35,6 +37,29 @@ public interface LetterRepository extends JpaRepository<Letter, Long> {
      * @param receiverId 수신자 ID
      * @param status 편지 상태
      * @return 편지 목록 (최신순)
+     * @deprecated 차단 기능 도입으로 {@link #findByReceiverIdAndStatusExcludingBlockedSenders} 사용 권장
      */
+    @Deprecated
     List<Letter> findByReceiverIdAndStatusOrderByCreatedAtDesc(Long receiverId, LetterStatus status);
+
+    /**
+     * 특정 수신자가 받은 특정 상태의 편지 목록을 최신순으로 조회합니다.
+     * 수신자가 차단한 발신자의 편지는 제외됩니다.
+     *
+     * @param receiverId 수신자 ID
+     * @param status 편지 상태
+     * @return 편지 목록 (최신순, 차단한 발신자 제외)
+     */
+    @Query(value = """
+            SELECT l.* FROM letters l
+            WHERE l.receiver_id = :receiverId
+              AND l.status = :#{#status.name()}
+              AND l.sender_id NOT IN (
+                  SELECT mb.blocked_id FROM member_blocks mb WHERE mb.blocker_id = :receiverId
+              )
+            ORDER BY l.created_at DESC
+            """, nativeQuery = true)
+    List<Letter> findByReceiverIdAndStatusExcludingBlockedSenders(
+            @Param("receiverId") Long receiverId,
+            @Param("status") LetterStatus status);
 }

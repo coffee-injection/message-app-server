@@ -66,7 +66,8 @@ public class LetterServiceImpl implements LetterService {
      */
     @Override
     public List<LetterIdResponse> getReceivedLetters(Long memberId) {
-        List<Letter> letters = letterRepository.findByReceiverIdAndStatusOrderByCreatedAtDesc(
+        // 차단한 발신자의 편지는 제외하고 조회
+        List<Letter> letters = letterRepository.findByReceiverIdAndStatusExcludingBlockedSenders(
                 memberId, LetterStatus.DELIVERED);
 
         log.info("읽지 않은 수신 편지 목록 조회: memberId = {}, count = {}", memberId, letters.size());
